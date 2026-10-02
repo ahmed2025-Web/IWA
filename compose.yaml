@@ -1,16 +1,20 @@
 services:
   keycloak:
     image: quay.io/keycloak/keycloak:26.0.5
-    command: start-dev
+    command:
+      - start-dev
+      - --import-realm
     restart: unless-stopped
     environment:
-      KC_BOOTSTRAP_ADMIN_USERNAME: admin
-      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?Define KEYCLOAK_ADMIN_PASSWORD in .env}
       KC_DB: dev-file
     ports:
       - "127.0.0.1:8080:8080"
     volumes:
       - keycloak_data:/opt/keycloak/data
+      - ./infra/keycloak/import:/opt/keycloak/data/import:ro
+    mem_limit: 768m
 
 volumes:
   keycloak_data:
