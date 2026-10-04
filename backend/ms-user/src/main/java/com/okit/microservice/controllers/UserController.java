@@ -1,43 +1,33 @@
 package com.okit.microservice.controllers;
 
 import com.okit.microservice.models.User;
-import com.okit.microservice.services.UserService;
+import com.okit.microservice.repositories.UserRepository;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/users")
 public class UserController {
 
-    private final UserService service;
+    private final UserRepository repo;
 
-    public UserController(UserService service) {
-        this.service = service;
+    public UserController(UserRepository repo) {
+        this.repo = repo;
     }
 
-    @GetMapping
-    public List<User> list() {
-        return service.findAll();
-    }
+    @GetMapping("/me")
+    public User me(@AuthenticationPrincipal Jwt jwt) {
+        String keycloakId = jwt.getSubject();              // le "sub" du token
 
-    @GetMapping("/{id}")
-    public User get(@PathVariable Long id) {
-        return service.findById(id);
-    }
-
-    @PostMapping
-    public User create(@RequestBody User u) {
-        return service.create(u);
-    }
-
-    @PutMapping("/{id}")
-    public User update(@PathVariable Long id, @RequestBody User u) {
-        return service.update(id, u);
-    }
-
-    @DeleteMapping("/{id}")
-    public void delete(@PathVariable Long id) {
-        service.delete(id);
+        // déjà en base ? on le renvoie. Sinon on le crée.
+        return repo.findByKeycloakId(keycloakId).orElseGet(() -> {
+            User u = new User();
+            u.setKeycloakId(keycloakId);
+            u.setEmail(jwt.getClaimAsString("email"));
+            u.setFirstName(jwt.getClaimAsString("given_name"));
+            u.setLastName(jwt.getClaimAsString("family_name"));
+            return repo.save(u);
+        });
     }
 }
