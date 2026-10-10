@@ -14,7 +14,7 @@ Tous les développeurs, contributeurs Docker et responsables CI/CD doivent impé
 | **Domaine public** | `dams5-07.students.polytech.lange.xyz` | Point d'entrée DNS public sécurisé |
 | **Ingress Controller** | `traefik` | `ingressClassName: traefik` |
 | **Gestionnaire TLS / Cert-Manager** | `cert-manager` | ClusterIssuer obligatoire : `letsencrypt-etudiants` |
-| **Accès CI/CD** | Secret GitHub `KUBE_CONFIG` | Kubeconfig complet encodé en base64 |
+| **Accès CI/CD** | Secret GitLab CI/CD `KUBE_CONFIG` | Kubeconfig complet encodé en base64 |
 
 ---
 

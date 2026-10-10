@@ -1,0 +1,19 @@
+stages:
+  - validate
+
+k8s-check:
+  stage: validate
+  image:
+    name: bitnami/kubectl:latest
+    entrypoint: [""]
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "web"
+    - if: $CI_COMMIT_BRANCH
+  script:
+    - mkdir -p ~/.kube && echo "$KUBE_CONFIG" | base64 -d > ~/.kube/config && chmod 600 ~/.kube/config
+    - kubectl config set-context --current --namespace=polytech-dams5-07
+    - kubectl get pods
+    - kubectl get services
+    - kubectl get ingress
+    - kubectl describe resourcequota

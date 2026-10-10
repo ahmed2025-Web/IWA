@@ -109,7 +109,7 @@ kubectl get ingress,certificates,certificaterequests -n polytech-dams5-07
 
 ## 5. Intégration Continue (CI/CD)
 
-Le workflow GitHub Actions `.github/workflows/k8s-check.yml` valide à chaque push et sur déclenchement manuel :
+Le pipeline GitLab CI/CD (`.gitlab-ci.yml`, job `k8s-check`) valide à chaque push, merge request et déclenchement manuel :
 1. La connectivité au cluster Kubernetes de Polytech.
 2. L'accès au namespace `polytech-dams5-07`.
 3. L'état actuel des pods, des services et de l'Ingress.
