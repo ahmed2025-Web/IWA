@@ -41,9 +41,12 @@ test:ms-catalogue:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       changes:
         - backend/ms-catalogue/**/*
+        - .gitlab-ci.yml
     - if: '$CI_COMMIT_BRANCH == "main"'
       changes:
         - backend/ms-catalogue/**/*
+        - .gitlab-ci.yml
     - if: '$CI_COMMIT_BRANCH'
       changes:
         - backend/ms-catalogue/**/*
+        - .gitlab-ci.yml
