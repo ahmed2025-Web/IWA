@@ -1,6 +1,6 @@
 .env
 .env.*
 !.env.example
-mobile/.env.local
-mobile/node_modules/
-mobile/.expo/
+apps/mobile-client/.env.local
+apps/mobile-client/node_modules/
+apps/mobile-client/.expo/
