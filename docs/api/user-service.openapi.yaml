@@ -1,0 +1,131 @@
+openapi: 3.1.0
+info:
+  title: O'kit User Service API
+  version: 0.1.0
+  description: API du profil métier de l'acheteur authentifié.
+servers:
+  - url: http://localhost:8082
+    description: Développement local direct
+security:
+  - bearerAuth: []
+paths:
+  /api/users/me:
+    get:
+      operationId: getCurrentUserProfile
+      summary: Consulter le profil de l'utilisateur authentifié
+      responses:
+        "200":
+          description: Profil trouvé
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: Aucun profil métier n'existe encore pour cet utilisateur
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+    put:
+      operationId: upsertCurrentUserProfile
+      summary: Créer ou remplacer le profil de l'utilisateur authentifié
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserProfile"
+      responses:
+        "200":
+          description: Profil enregistré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "400":
+          description: Données invalides
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  responses:
+    Unauthorized:
+      description: Token absent, expiré ou invalide
+  schemas:
+    UpdateUserProfile:
+      type: object
+      additionalProperties: false
+      required:
+        - firstName
+        - lastName
+        - phoneNumber
+      properties:
+        firstName:
+          type: string
+          minLength: 1
+          maxLength: 100
+        lastName:
+          type: string
+          minLength: 1
+          maxLength: 100
+        phoneNumber:
+          type: string
+          minLength: 3
+          maxLength: 32
+          pattern: "^[0-9+(). -]+$"
+        birthDate:
+          type:
+            - string
+            - "null"
+          format: date
+    UserProfile:
+      allOf:
+        - $ref: "#/components/schemas/UpdateUserProfile"
+        - type: object
+          required:
+            - id
+            - subject
+            - createdAt
+            - updatedAt
+          properties:
+            id:
+              type: string
+              format: uuid
+            subject:
+              type: string
+            email:
+              type:
+                - string
+                - "null"
+              format: email
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+    Problem:
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+          format: uri

@@ -1,0 +1,95 @@
+package fr.polytech.okit.user.profile;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+
+import java.time.Instant;
+import java.time.LocalDate;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@WebMvcTest(UserProfileController.class)
+@Import(fr.polytech.okit.user.config.SecurityConfig.class)
+class UserProfileControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockitoBean
+    private UserProfileService service;
+
+    @Test
+    void rejectsAnonymousRequest() throws Exception {
+        mockMvc.perform(get("/api/users/me"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void returnsAuthenticatedUserProfile() throws Exception {
+        UserProfile profile = UserProfile.create(
+                "subject-123", "Alice", "Martin", "+33 6 12 34 56 78",
+                LocalDate.of(2000, 3, 14), Instant.parse("2026-10-12T10:15:30Z"));
+        when(service.getBySubject("subject-123")).thenReturn(profile);
+
+        mockMvc.perform(get("/api/users/me")
+                        .with(jwt().jwt(token -> token.subject("subject-123").claim("email", "alice@example.test"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.subject").value("subject-123"))
+                .andExpect(jsonPath("$.email").value("alice@example.test"))
+                .andExpect(jsonPath("$.firstName").value("Alice"));
+    }
+
+    @Test
+    void savesAuthenticatedUserProfile() throws Exception {
+        UserProfile profile = UserProfile.create(
+                "subject-123", "Alice", "Martin", "+33 6 12 34 56 78",
+                LocalDate.of(2000, 3, 14), Instant.parse("2026-10-12T10:15:30Z"));
+        when(service.upsert(eq("subject-123"), any(UpdateUserProfileRequest.class))).thenReturn(profile);
+
+        mockMvc.perform(put("/api/users/me")
+                        .with(jwt().jwt(token -> token.subject("subject-123").claim("email", "alice@example.test")))
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "firstName": "Alice",
+                                  "lastName": "Martin",
+                                  "phoneNumber": "+33 6 12 34 56 78",
+                                  "birthDate": "2000-03-14"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.subject").value("subject-123"))
+                .andExpect(jsonPath("$.email").value("alice@example.test"))
+                .andExpect(jsonPath("$.phoneNumber").value("+33 6 12 34 56 78"));
+    }
+
+    @Test
+    void rejectsInvalidProfile() throws Exception {
+        SecurityMockMvcRequestPostProcessors.JwtRequestPostProcessor authenticated =
+                jwt().jwt(token -> token.subject("subject-123"));
+
+        mockMvc.perform(put("/api/users/me")
+                        .with(authenticated)
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "firstName": "",
+                                  "lastName": "Martin",
+                                  "phoneNumber": "invalid phone!"
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+}
