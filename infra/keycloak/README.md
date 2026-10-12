@@ -11,7 +11,7 @@ configuration OIDC versionnée.
   registre retenu par l'équipe ;
 - le Secret `keycloak-secrets` ;
 - les CRD Prometheus Operator pour le `ServiceMonitor` ;
-- le certificat HTTPS de l'hôte fourni, référencé par l'Ingress.
+- la gateway d'entrée déployée séparément depuis `infra/kubernetes/gateway`.
 
 Remplacer dans `kustomization.yaml` la valeur volontairement invalide
 `registry.example.invalid/okit/keycloak:replace-me` par l'image immuable publiée
@@ -52,9 +52,9 @@ kubectl -n polytech-dams5-07 rollout status statefulset/keycloak-postgres
 kubectl -n polytech-dams5-07 rollout status deployment/keycloak
 ```
 
-L'Ingress Keycloak peut coexister avec le nginx initial : ses chemins
-`/realms` et `/resources` sont plus spécifiques que `/`. Le nginx ne sera
-retiré que lorsque la gateway prendra en charge la route principale.
+Déployer ensuite la gateway d'entrée. Ses chemins `/realms` et `/resources`
+sont plus spécifiques que la route `/` du nginx initial et peuvent donc
+coexister avec lui.
 
 ## Contrôles
 

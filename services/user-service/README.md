@@ -34,4 +34,4 @@ Le service est alors exposé sur `http://localhost:8082`. Les endpoints de sant�
 
 ## Kubernetes
 
-Les manifests et la procédure de déploiement sont décrits dans [`infra/kubernetes/user-service/README.md`](../../infra/kubernetes/user-service/README.md). Le service reste interne au cluster : l'exposition publique sera assurée par l'API Gateway et son Ingress.
+Les manifests et la procédure de déploiement sont décrits dans [`infra/kubernetes/user-service/README.md`](../../infra/kubernetes/user-service/README.md). Le Service reste interne au cluster ; la gateway d'entrée Traefik publie uniquement le préfixe `/api/users`.

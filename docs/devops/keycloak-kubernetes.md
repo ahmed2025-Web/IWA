@@ -8,7 +8,7 @@ Le socle `infra/keycloak` déploie :
 - PostgreSQL comme stockage dédié et persistant ;
 - le realm `okit` depuis la configuration versionnée ;
 - les Services internes, probes et métriques ;
-- un Ingress HTTPS limité aux routes nécessaires aux parcours OIDC publics ;
+- un Service interne consommé par la gateway d'entrée ;
 - une NetworkPolicy protégeant PostgreSQL.
 
 L'image est construite depuis `infra/keycloak/Dockerfile`. Elle prépare
@@ -27,10 +27,11 @@ Keycloak produit des tokens dont l'issuer est :
 https://dams5-07.students.polytech.lange.xyz/realms/okit
 ```
 
-L'Ingress publie `/realms` et `/resources`. La console `/admin` reste interne et
-peut être ouverte temporairement par `port-forward`. Le `user-service` utilise
-le même issuer public, mais récupère les clés de signature sur le Service
-interne `http://keycloak:8080`.
+La gateway située dans `infra/kubernetes/gateway` publie `/realms` et
+`/resources`. La console `/admin` reste interne et peut être ouverte
+temporairement par `port-forward`. Le `user-service` utilise le même issuer
+public, mais récupère les clés de signature sur le Service interne
+`http://keycloak:8080`.
 
 ## Secrets
 

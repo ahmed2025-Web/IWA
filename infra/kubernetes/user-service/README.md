@@ -1,6 +1,6 @@
 # user-service sur Kubernetes
 
-Ces manifests ciblent exclusivement le namespace `polytech-dams5-07`. Ils ne créent ni Ingress ni Service public : le trafic externe passera par l'API Gateway.
+Ces manifests ciblent exclusivement le namespace `polytech-dams5-07`. Ils ne créent ni Ingress ni Service public : le trafic externe passe par la gateway d'entrée décrite dans [`../gateway`](../gateway/README.md).
 
 ## Prérequis
 

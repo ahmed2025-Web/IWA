@@ -8,7 +8,6 @@ resources:
   - kubernetes/keycloak-deployment.yaml
   - kubernetes/keycloak-service.yaml
   - kubernetes/keycloak-monitor.yaml
-  - kubernetes/keycloak-ingress.yaml
 configMapGenerator:
   - name: keycloak-realm
     files:

@@ -9,3 +9,5 @@ La configuration Keycloak et ses procédures de lancement sont décrites dans [`
 - [`user-service`](services/user-service/README.md) : profil métier de l'acheteur authentifié.
 
 Les manifests Kubernetes du service utilisateur sont documentés dans [`infra/kubernetes/user-service/`](infra/kubernetes/user-service/README.md).
+
+La gateway d'entrée et les routes publiques sont documentées dans [`infra/kubernetes/gateway/`](infra/kubernetes/gateway/README.md).

@@ -15,13 +15,16 @@ Le namespace cible est `polytech-dams5-07`.
 
 ## Exposition réseau
 
-`user-service` n'est pas exposé directement par un Ingress. Le futur API Gateway sera l'unique point d'entrée public sur l'hôte fourni par le cluster :
+`user-service` reste un Service interne. La gateway d'entrée Traefik le publie
+uniquement sous `/api/users` sur l'hôte fourni par le cluster :
 
 ```text
 https://dams5-07.students.polytech.lange.xyz
 ```
 
-Cette séparation évite de multiplier les Ingress et conserve le contrôle transversal de l'authentification, du routage et du CORS dans le gateway.
+Cette séparation évite de multiplier les Ingress. Le `user-service` reste
+responsable de valider les JWT et la gateway centralise uniquement le routage
+public et TLS à cette étape.
 
 ## Secrets
 
@@ -45,6 +48,5 @@ PostgreSQL demande un PVC de 2 Gio. Le service utilisateur peut être redéploy�
 Les manifests Keycloak sont fournis dans `infra/keycloak`. Ils créent le Service
 interne `keycloak`, importent le realm `okit` et publient l'issuer HTTPS attendu.
 
-Les dépendances restantes pour le parcours public complet sont :
-
-- l'API Gateway et son Ingress conservant l'hôte et le certificat du cluster.
+La gateway d'entrée est fournie dans `infra/kubernetes/gateway`. Elle conserve
+l'hôte et le certificat du cluster et route `/api/users` sans réécriture.
