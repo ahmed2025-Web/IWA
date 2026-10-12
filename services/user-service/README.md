@@ -30,4 +30,8 @@ cp .env.example .env
 docker compose up --build keycloak postgres user-service
 ```
 
-Le service est alors exposé sur `http://localhost:8082`. Les endpoints de santé et de métriques sont respectivement `/actuator/health` et `/actuator/prometheus`.
+Le service est alors exposé sur `http://localhost:8082`. Les endpoints de santé et de métriques sont respectivement `/health` et `/metrics`.
+
+## Kubernetes
+
+Les manifests et la procédure de déploiement sont décrits dans [`infra/kubernetes/user-service/README.md`](../../infra/kubernetes/user-service/README.md). Le service reste interne au cluster : l'exposition publique sera assurée par l'API Gateway et son Ingress.
