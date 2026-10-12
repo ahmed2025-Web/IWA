@@ -1,6 +1,6 @@
 # Authentification locale avec Keycloak
 
-Ce document décrit la configuration de développement de l'authentification O'kit. Keycloak porte les identités et les mots de passe. L'application mobile est un client public OIDC et utilise le flux Authorization Code avec PKCE S256.
+Ce document décrit la configuration de l'authentification O'kit. Keycloak porte les identités et les mots de passe. L'application mobile est un client public OIDC et utilise le flux Authorization Code avec PKCE S256.
 
 Cette configuration est réservée au développement local. Le mode `start-dev`, HTTP et les URI localhost ne conviennent pas à la production.
 
@@ -80,6 +80,12 @@ Cette suppression est destructive pour les comptes de développement créés loc
 | URI web | `http://localhost:8081` |
 | Scopes attendus | `openid profile email` |
 
+Dans Kubernetes, le même client accepte également le domaine HTTPS du groupe :
+
+```text
+https://dams5-07.students.polytech.lange.xyz
+```
+
 L'étape d'implémentation mobile devra calculer l'URI de redirection avec Expo plutôt que la coder en dur. La valeur obtenue devra correspondre exactement à une URI autorisée dans Keycloak.
 
 ## Accès depuis Android ou un appareil physique
@@ -100,11 +106,20 @@ L'inscription et la réinitialisation sont activées dans le realm. L'envoi effe
 
 ## Limites connues
 
-- aucune configuration de production n'est fournie ;
 - aucun rôle métier n'est encore défini ;
 - aucun serveur SMTP n'est configuré ;
 - la validation de l'adresse e-mail est désactivée en développement ;
 - le prototype mobile existant utilise encore `okit-web-dev` et une redirection codée en dur ; il sera adapté dans l'étape suivante.
+
+## Déploiement Kubernetes
+
+Le dossier `infra/keycloak` fournit le déploiement Keycloak, sa base PostgreSQL,
+les probes, les métriques et l'Ingress des routes OIDC. Les identifiants
+d'administration et le mot de passe de base sont fournis par un Secret qui ne
+doit jamais être ajouté au dépôt.
+
+La procédure complète se trouve dans
+[`docs/devops/keycloak-kubernetes.md`](../devops/keycloak-kubernetes.md).
 
 ## Références
 

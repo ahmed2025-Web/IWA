@@ -2,7 +2,7 @@
 
 ## Authentification locale
 
-La configuration de développement Keycloak et sa procédure de lancement sont décrites dans [`docs/auth/keycloak.md`](docs/auth/keycloak.md).
+La configuration Keycloak et ses procédures de lancement sont décrites dans [`docs/auth/keycloak.md`](docs/auth/keycloak.md). Les manifests Kubernetes se trouvent dans [`infra/keycloak/`](infra/keycloak/README.md).
 
 ## Services
 

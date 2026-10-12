@@ -40,11 +40,11 @@ Les ressources sont dimensionnées pour rester raisonnables dans le quota du nam
 
 PostgreSQL demande un PVC de 2 Gio. Le service utilisateur peut être redéployé sans perdre les profils ; la suppression volontaire du PVC reste une opération destructive distincte.
 
-## Dépendances restantes
+## Dépendances
 
-Pour que les appels authentifiés fonctionnent dans le cluster, les étapes suivantes devront aussi fournir :
+Les manifests Keycloak sont fournis dans `infra/keycloak`. Ils créent le Service
+interne `keycloak`, importent le realm `okit` et publient l'issuer HTTPS attendu.
 
-- Keycloak sous le nom DNS interne `keycloak` ;
-- le realm `okit` reproductible ;
-- une route HTTPS publique cohérente avec l'issuer configuré ;
+Les dépendances restantes pour le parcours public complet sont :
+
 - l'API Gateway et son Ingress conservant l'hôte et le certificat du cluster.
