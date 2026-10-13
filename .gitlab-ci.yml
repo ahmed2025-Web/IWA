@@ -1,5 +1,9 @@
 stages:
   - validate
+  - test
+  - build   # reserve pour etapes futures (Docker registry)
+  - scan    # reserve pour trivy
+  - deploy  # reserve pour cluster Polytech
 
 k8s-check:
   stage: validate
@@ -17,3 +21,32 @@ k8s-check:
     - kubectl get services
     - kubectl get ingress
     - kubectl describe resourcequota
+
+test:ms-avis:
+  stage: test
+  image: eclipse-temurin:21-jdk-alpine
+  before_script:
+    - chmod +x backend/ms-avis/mvnw
+  script:
+    - cd backend/ms-avis
+    - ./mvnw clean test
+  artifacts:
+    when: always
+    reports:
+      junit: backend/ms-avis/target/surefire-reports/TEST-*.xml
+    paths:
+      - backend/ms-avis/target/surefire-reports/
+    expire_in: 1 week
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        - backend/ms-avis/**/*
+        - .gitlab-ci.yml
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - backend/ms-avis/**/*
+        - .gitlab-ci.yml
+    - if: '$CI_COMMIT_BRANCH'
+      changes:
+        - backend/ms-avis/**/*
+        - .gitlab-ci.yml
