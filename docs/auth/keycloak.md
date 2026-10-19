@@ -12,6 +12,8 @@ Le fichier `infra/keycloak/import/okit-realm.json` crée au premier démarrage :
 - le client public `okit-mobile` ;
 - le flux Authorization Code ;
 - l'obligation d'utiliser PKCE S256 ;
+- le client scope Keycloak `basic`, qui ajoute le claim stable `sub` au token
+  d'accès utilisé par les microservices ;
 - l'inscription utilisateur ;
 - la réinitialisation du mot de passe.
 
@@ -104,12 +106,19 @@ Une modification de `okit-realm.json` ne remplace donc pas automatiquement un re
 
 L'inscription et la réinitialisation sont activées dans le realm. L'envoi effectif des courriels de réinitialisation nécessite encore une configuration SMTP. Aucun identifiant SMTP ne doit être inscrit dans le JSON du realm ou dans le dépôt.
 
+Le client ouvre l'endpoint d'inscription utilisateur Keycloak avec le même flux
+Authorization Code et PKCE que la connexion. Le mot de passe reste donc saisi
+uniquement dans l'interface Keycloak.
+
 ## Limites connues
 
 - aucun rôle métier n'est encore défini ;
 - aucun serveur SMTP n'est configuré ;
 - la validation de l'adresse e-mail est désactivée en développement ;
-- le prototype mobile existant utilise encore `okit-web-dev` et une redirection codée en dur ; il sera adapté dans l'étape suivante.
+- le renouvellement automatique d'une session expirée n'est pas encore fourni ;
+- l'aperçu web local dépend de Keycloak sur `8080`, d'Expo sur `8081` et de la
+  gateway sur `8083` ; `user-service` reste exposé sur `8082` uniquement pour
+  le diagnostic local.
 
 ## Déploiement Kubernetes
 

@@ -1,0 +1,54 @@
+# Client mobile O'kit
+
+Application Expo SDK 57 compatible Android, iOS et aperçu web. Keycloak gère
+l'inscription et la connexion avec Authorization Code et PKCE ; `user-service`
+conserve ensuite le profil métier.
+
+## Configuration locale
+
+Les valeurs par défaut correspondent à Docker Compose :
+
+```text
+Keycloak    http://localhost:8080
+Expo Web   http://localhost:8081
+API Gateway http://localhost:8083
+```
+
+Pour surcharger les URL sans ajouter de secret :
+
+```bash
+cp .env.example .env.local
+```
+
+Les variables `EXPO_PUBLIC_*` sont intégrées au bundle et ne doivent jamais
+contenir de secret.
+
+## Aperçu web
+
+Depuis la racine du dépôt, démarrer d'abord le backend :
+
+```bash
+docker compose up --build keycloak postgres user-service api-gateway
+```
+
+Puis, dans `apps/mobile-client` :
+
+```bash
+npm ci
+npm run web
+```
+
+Ouvrir `http://localhost:8081`. Après connexion ou inscription, le formulaire
+appelle la gateway pour charger `GET /api/users/me`. Un profil absent peut être
+créé par le bouton « Enregistrer mon profil », qui appelle `PUT /api/users/me`.
+
+## Vérifications
+
+```bash
+npm run lint
+npm run typecheck
+npx expo-doctor
+```
+
+Le workflow fonctionnel complet est documenté dans
+[`docs/mobile/auth-profile-flow.md`](../../docs/mobile/auth-profile-flow.md).

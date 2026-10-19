@@ -39,6 +39,7 @@
         "pkce.code.challenge.method": "S256"
       },
       "defaultClientScopes": [
+        "basic",
         "profile",
         "email",
         "roles",
