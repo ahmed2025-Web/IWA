@@ -13,11 +13,11 @@ spec:
     - host: dams5-07.students.polytech.lange.xyz
       http:
         paths:
-          - path: /api/users
+          - path: /api
             pathType: Prefix
             backend:
               service:
-                name: user-service
+                name: api-gateway
                 port:
                   name: http
           - path: /realms

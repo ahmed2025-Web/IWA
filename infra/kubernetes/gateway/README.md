@@ -1,14 +1,25 @@
-# Gateway d'entrée O'kit
+# Gateway O'kit sur Kubernetes
 
-Cette ressource Ingress cible le namespace `polytech-dams5-07` et centralise
-les routes publiques actuellement livrées par O'kit.
+Ce dossier déploie la gateway applicative Spring Cloud Gateway et l'Ingress
+Traefik commun dans le namespace `polytech-dams5-07`.
 
 ## Prérequis
 
 - Keycloak déployé avec le Service interne `keycloak` ;
 - `user-service` déployé avec son Service interne ;
+- image `api-gateway` publiée dans un registre accessible au cluster ;
 - IngressClass `traefik` disponible ;
-- certificat du domaine du groupe disponible dans le Secret `nginx-tls`.
+- certificat du domaine du groupe disponible dans le Secret `nginx-tls` ;
+- CRD `ServiceMonitor` disponible pour la ressource d'observabilité.
+
+Avant le déploiement, remplacer dans `kustomization.yaml` :
+
+```yaml
+newName: registry.example.invalid/okit/api-gateway
+newTag: replace-me
+```
+
+par le registre et le tag immuable produits par le pipeline.
 
 ## Validation et déploiement
 
@@ -16,6 +27,8 @@ les routes publiques actuellement livrées par O'kit.
 kubectl kustomize infra/kubernetes/gateway
 kubectl apply --dry-run=server -k infra/kubernetes/gateway
 kubectl apply -k infra/kubernetes/gateway
+kubectl rollout status deployment/api-gateway \
+  --namespace polytech-dams5-07
 ```
 
 Le nginx initial peut continuer à traiter `/`. Ne le supprimez pas avant que le
@@ -24,12 +37,14 @@ frontend React possède son propre Deployment et son propre Service.
 ## Contrôles
 
 ```bash
-curl --fail https://dams5-07.students.polytech.lange.xyz/realms/okit/.well-known/openid-configuration
+curl --fail \
+  https://dams5-07.students.polytech.lange.xyz/realms/okit/.well-known/openid-configuration
 
-# L'API est joignable mais reste protégée : sans JWT, le statut attendu est 401.
+# Sans JWT, le statut attendu est 401, émis par api-gateway.
 curl --output /dev/null --write-out '%{http_code}\n' \
   https://dams5-07.students.polytech.lange.xyz/api/users/me
 ```
 
-La décision d'architecture et la matrice des routes sont décrites dans
+Avec un JWT valide, `GET /api/users/me` est routé vers `user-service`, qui
+valide à nouveau le token. Les détails d'architecture sont documentés dans
 [`docs/devops/edge-gateway-kubernetes.md`](../../../docs/devops/edge-gateway-kubernetes.md).

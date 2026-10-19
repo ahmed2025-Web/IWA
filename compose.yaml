@@ -51,6 +51,21 @@ services:
       - "127.0.0.1:8082:8080"
     mem_limit: 512m
 
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+    restart: unless-stopped
+    depends_on:
+      - user-service
+    environment:
+      USER_SERVICE_URL: http://user-service:8080
+      OIDC_ISSUER_URI: http://localhost:8080/realms/okit
+      OIDC_JWK_SET_URI: http://keycloak:8080/realms/okit/protocol/openid-connect/certs
+      CORS_ALLOWED_ORIGIN: http://localhost:8081
+    ports:
+      - "127.0.0.1:8083:8080"
+    mem_limit: 512m
+
 volumes:
   keycloak_data:
   postgres_data:

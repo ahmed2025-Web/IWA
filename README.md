@@ -6,6 +6,7 @@ La configuration Keycloak et ses procédures de lancement sont décrites dans [`
 
 ## Services
 
+- [`api-gateway`](services/api-gateway/README.md) : gateway applicative Spring Cloud, sécurité JWT et CORS.
 - [`user-service`](services/user-service/README.md) : profil métier de l'acheteur authentifié.
 
 Les manifests Kubernetes du service utilisateur sont documentés dans [`infra/kubernetes/user-service/`](infra/kubernetes/user-service/README.md).

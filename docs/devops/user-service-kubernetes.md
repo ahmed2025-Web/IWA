@@ -15,16 +15,17 @@ Le namespace cible est `polytech-dams5-07`.
 
 ## Exposition réseau
 
-`user-service` reste un Service interne. La gateway d'entrée Traefik le publie
-uniquement sous `/api/users` sur l'hôte fourni par le cluster :
+`user-service` reste un Service interne. Traefik publie `/api/**` vers Spring
+Cloud Gateway, qui route ensuite `/api/users/**` vers le service sur l'hôte du
+cluster :
 
 ```text
 https://dams5-07.students.polytech.lange.xyz
 ```
 
-Cette séparation évite de multiplier les Ingress. Le `user-service` reste
-responsable de valider les JWT et la gateway centralise uniquement le routage
-public et TLS à cette étape.
+Cette séparation évite de multiplier les Ingress. Spring Cloud Gateway valide
+le JWT et centralise le CORS, puis `user-service` valide à nouveau le token
+avant d'accéder aux données métier.
 
 ## Secrets
 
@@ -48,5 +49,7 @@ PostgreSQL demande un PVC de 2 Gio. Le service utilisateur peut être redéploy�
 Les manifests Keycloak sont fournis dans `infra/keycloak`. Ils créent le Service
 interne `keycloak`, importent le realm `okit` et publient l'issuer HTTPS attendu.
 
-La gateway d'entrée est fournie dans `infra/kubernetes/gateway`. Elle conserve
-l'hôte et le certificat du cluster et route `/api/users` sans réécriture.
+La gateway applicative et l'Ingress sont fournis dans
+`infra/kubernetes/gateway`. Traefik conserve l'hôte et le certificat du cluster
+et route `/api/**` vers `api-gateway`, qui conserve le chemin
+`/api/users/**` lors de l'appel au service.
