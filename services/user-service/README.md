@@ -115,7 +115,10 @@ mvn verify
 ```
 
 Cette commande compile le service, exécute les tests et construit le JAR dans
-`target/`.
+`target/`. Docker doit être démarré : les tests d'intégration lancent une base
+PostgreSQL isolée avec Testcontainers. La construction de l'image exécute les
+tests unitaires et reporte ces tests d'intégration à la vérification Maven sur
+l'hôte, où le daemon Docker est accessible.
 
 ### Application React Native / Expo
 
@@ -178,6 +181,15 @@ Keycloak importe le realm seulement s'il n'existe pas encore. Un volume
 Keycloak déjà initialisé conserve donc l'ancienne configuration. Utiliser une
 migration Keycloak ou, uniquement pour des données locales jetables, la
 réinitialisation des volumes décrite ci-dessus.
+
+### Le mot de passe administrateur Keycloak est refusé
+
+`KC_BOOTSTRAP_ADMIN_PASSWORD` sert uniquement à créer le premier compte
+administrateur d'un stockage Keycloak vide. Modifier
+`KEYCLOAK_ADMIN_PASSWORD` dans `.env` ne change pas le mot de passe d'un compte
+déjà conservé dans le volume. Réutiliser le mot de passe d'origine ou suivre
+la procédure d'administration Keycloak prévue par l'équipe ; ne pas supprimer
+un volume partagé pour contourner ce problème.
 
 ### Consulter les logs d'un composant
 

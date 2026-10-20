@@ -49,6 +49,12 @@ services:
       OIDC_JWK_SET_URI: http://keycloak:8080/realms/okit/protocol/openid-connect/certs
     ports:
       - "127.0.0.1:8082:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --spider http://127.0.0.1:8080/health/readiness"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 20s
     mem_limit: 512m
 
   api-gateway:
@@ -56,7 +62,8 @@ services:
       context: ./services/api-gateway
     restart: unless-stopped
     depends_on:
-      - user-service
+      user-service:
+        condition: service_healthy
     environment:
       USER_SERVICE_URL: http://user-service:8080
       OIDC_ISSUER_URI: http://localhost:8080/realms/okit
@@ -64,6 +71,12 @@ services:
       CORS_ALLOWED_ORIGIN: http://localhost:8081
     ports:
       - "127.0.0.1:8083:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --spider http://127.0.0.1:8080/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 20s
     mem_limit: 512m
 
 volumes:

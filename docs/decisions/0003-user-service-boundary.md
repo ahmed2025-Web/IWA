@@ -41,7 +41,10 @@ Les adresses et la wishlist appartiennent fonctionnellement au domaine client, m
 - `GET /api/users/me` consulte le profil courant ;
 - `PUT /api/users/me` crée ou remplace de façon idempotente le profil courant.
 
-Ces routes exigent un JWT valide. Aucun rôle métier n'est requis dans cette première tranche : la possession d'un token valide et l'isolation par `sub` suffisent pour agir sur son propre profil.
+Ces routes exigent un JWT valide portant le rôle realm `BUYER`. Cette règle
+d'autorisation, ajoutée après la définition initiale du MVP, est détaillée dans
+l'[ADR 0006](0006-buyer-access-to-user-service.md). L'isolation par `sub`
+continue de garantir qu'un acheteur agit uniquement sur son propre profil.
 
 ## Alternatives envisagées
 
@@ -59,7 +62,8 @@ Ces routes exigent un JWT valide. Aucun rôle métier n'est requis dans cette pr
 
 ## Conséquences
 
-- chaque requête métier est authentifiée comme OAuth2 Resource Server ;
+- chaque requête métier est authentifiée comme OAuth2 Resource Server et
+  exige le rôle `BUYER` ;
 - `sub` est une clé externe immuable et unique ;
 - le service possède sa table et ses migrations ;
 - un changement d'e-mail reste du ressort de Keycloak ;

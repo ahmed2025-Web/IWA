@@ -20,7 +20,8 @@ Une application mobile est un client public : elle ne peut pas protéger durable
 - Le realm de développement est importé depuis un fichier JSON versionné.
 - Les données locales sont conservées dans un volume Docker.
 - Les URI de redirection sont restreintes aux valeurs nécessaires au web local et au schéma natif O'kit.
-- Les rôles et permissions métier seront définis dans une décision séparée avant leur implémentation.
+- Le rôle acheteur et la protection de `user-service` sont définis dans
+  l'[ADR 0006](0006-buyer-access-to-user-service.md).
 
 ## Alternatives envisagées
 
@@ -43,7 +44,9 @@ Cette solution a été écartée. Elle obligerait l'application à manipuler dir
 ## Conséquences
 
 - L'application ouvrira la page Keycloak dans le navigateur système.
-- La prochaine étape devra calculer les URI de redirection par plateforme et gérer les tokens sans secret client.
+- L'application calcule les URI de redirection par plateforme et gère les
+  tokens sans secret client. Le renouvellement automatique des tokens reste
+  une évolution distincte du client mobile.
 - L'inscription et la réinitialisation bénéficieront des parcours Keycloak, mais la réinitialisation par courriel restera inactive tant qu'un SMTP n'est pas configuré.
 - La configuration locale peut être recréée après suppression volontaire du volume Docker.
 - La configuration de production devra utiliser HTTPS, un stockage adapté et des secrets fournis par l'environnement de déploiement.

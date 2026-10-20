@@ -3,7 +3,7 @@ WORKDIR /workspace
 COPY pom.xml ./
 RUN mvn --batch-mode dependency:go-offline
 COPY src ./src
-RUN mvn --batch-mode verify
+RUN mvn --batch-mode verify -DskipITs
 
 FROM eclipse-temurin:21-jre-alpine
 RUN addgroup -S -g 10001 spring && adduser -S -u 10001 -G spring spring

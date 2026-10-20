@@ -22,7 +22,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/health", "/health/**", "/metrics").permitAll()
                         .requestMatchers("/api/users/**").access(SecurityConfig::isBuyer)
-                        .anyRequest().authenticated())
+                        .anyRequest().denyAll())
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt
                         .jwtAuthenticationConverter(new RealmRoleJwtAuthenticationConverter())))
                 .build();

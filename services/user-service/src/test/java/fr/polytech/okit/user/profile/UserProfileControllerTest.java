@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -99,6 +100,49 @@ class UserProfileControllerTest {
         mockMvc.perform(get("/api/users/me")
                         .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_OTHER"))))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void rejectsUnexpectedAuthenticatedRoute() throws Exception {
+        mockMvc.perform(get("/api/internal/unexpected")
+                        .with(buyerJwt()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void rejectsUnknownRequestField() throws Exception {
+        mockMvc.perform(put("/api/users/me")
+                        .with(buyerJwt().jwt(token -> token.subject("subject-123")))
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "firstName": "Alice",
+                                  "lastName": "Martin",
+                                  "phoneNumber": "+33 6 12 34 56 78",
+                                  "unexpected": true
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type").value("urn:problem:invalid-request-body"));
+    }
+
+    @Test
+    void returnsConflictWhenProfileCannotBeSaved() throws Exception {
+        when(service.upsert(eq("subject-123"), any(UpdateUserProfileRequest.class)))
+                .thenThrow(new DataIntegrityViolationException("concurrent profile update"));
+
+        mockMvc.perform(put("/api/users/me")
+                        .with(buyerJwt().jwt(token -> token.subject("subject-123")))
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "firstName": "Alice",
+                                  "lastName": "Martin",
+                                  "phoneNumber": "+33 6 12 34 56 78"
+                                }
+                                """))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.type").value("urn:problem:user-profile-conflict"));
     }
 
     private static SecurityMockMvcRequestPostProcessors.JwtRequestPostProcessor buyerJwt() {
