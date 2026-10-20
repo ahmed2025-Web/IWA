@@ -10,6 +10,17 @@
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,
   "verifyEmail": false,
+  "roles": {
+    "realm": [
+      {
+        "name": "BUYER",
+        "description": "Acheteur autorisé à utiliser l'application mobile O'kit"
+      }
+    ]
+  },
+  "defaultRoles": [
+    "BUYER"
+  ],
   "clients": [
     {
       "clientId": "okit-mobile",
@@ -49,6 +60,14 @@
         "address",
         "phone",
         "offline_access"
+      ]
+    }
+  ],
+  "scopeMappings": [
+    {
+      "client": "okit-mobile",
+      "roles": [
+        "BUYER"
       ]
     }
   ]

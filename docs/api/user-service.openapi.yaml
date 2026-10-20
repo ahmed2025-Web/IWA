@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   title: O'kit User Service API
   version: 0.1.0
-  description: API du profil métier de l'acheteur authentifié.
+  description: API du profil métier de l'acheteur authentifié. Le rôle realm Keycloak BUYER est obligatoire.
 servers:
   - url: http://localhost:8082
     description: Développement local direct
@@ -22,6 +22,8 @@ paths:
                 $ref: "#/components/schemas/UserProfile"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "404":
           description: Aucun profil métier n'existe encore pour cet utilisateur
           content:
@@ -52,6 +54,8 @@ paths:
                 $ref: "#/components/schemas/Problem"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 components:
   securitySchemes:
     bearerAuth:
@@ -61,6 +65,8 @@ components:
   responses:
     Unauthorized:
       description: Token absent, expiré ou invalide
+    Forbidden:
+      description: Le token ne porte pas le rôle BUYER
   schemas:
     UpdateUserProfile:
       type: object

@@ -1,6 +1,6 @@
 # Authentification locale avec Keycloak
 
-Ce document décrit la configuration de l'authentification O'kit. Keycloak porte les identités et les mots de passe. L'application mobile est un client public OIDC et utilise le flux Authorization Code avec PKCE S256.
+Ce document décrit la configuration de l'authentification O'kit. Keycloak porte les identités, les mots de passe et le rôle acheteur. L'application mobile utilise un client public OIDC avec Authorization Code et PKCE S256.
 
 Cette configuration est réservée au développement local. Le mode `start-dev`, HTTP et les URI localhost ne conviennent pas à la production.
 
@@ -15,11 +15,11 @@ Le fichier `infra/keycloak/import/okit-realm.json` crée au premier démarrage :
 - le client scope Keycloak `basic`, qui ajoute le claim stable `sub` au token
   d'accès utilisé par les microservices ;
 - l'inscription utilisateur ;
-- la réinitialisation du mot de passe.
+- la réinitialisation du mot de passe ;
+- le rôle realm `BUYER` ;
+- l'attribution de `BUYER` par défaut aux inscriptions publiques.
 
 Le client ne possède pas de secret, car une application installée sur un appareil ne peut pas conserver un secret de manière fiable. Les flux implicite, Resource Owner Password Credentials et service account sont désactivés.
-
-Les rôles métier ne sont pas définis à cette étape. Ils devront être ajoutés après validation du modèle d'autorisation.
 
 ## Prérequis
 
@@ -82,6 +82,10 @@ Cette suppression est destructive pour les comptes de développement créés loc
 | URI web | `http://localhost:8081` |
 | Scopes attendus | `openid profile email` |
 
+Le client mobile et `user-service` exigent le rôle `BUYER`. Un scope mapping
+limité à ce rôle le rend disponible dans le jeton sans exposer automatiquement
+les futurs rôles du realm.
+
 Dans Kubernetes, le même client accepte également le domaine HTTPS du groupe :
 
 ```text
@@ -112,7 +116,6 @@ uniquement dans l'interface Keycloak.
 
 ## Limites connues
 
-- aucun rôle métier n'est encore défini ;
 - aucun serveur SMTP n'est configuré ;
 - la validation de l'adresse e-mail est désactivée en développement ;
 - le renouvellement automatique d'une session expirée n'est pas encore fourni ;

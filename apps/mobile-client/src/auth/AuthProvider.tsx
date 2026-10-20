@@ -34,6 +34,12 @@ type KeycloakUser = {
   family_name?: string;
 };
 
+type KeycloakAccessToken = {
+  realm_access?: {
+    roles?: string[];
+  };
+};
+
 type AuthContextValue = {
   accessToken: string | null;
   canAuthenticate: boolean;
@@ -56,6 +62,28 @@ function toStoredSession(tokens: AuthSession.TokenResponse): StoredSession {
     issuedAt: tokens.issuedAt,
     expiresIn: tokens.expiresIn,
   };
+}
+
+function readRealmRoles(accessToken: string): string[] {
+  try {
+    const encodedPayload = accessToken.split('.')[1];
+    if (!encodedPayload) {
+      return [];
+    }
+    const normalized = encodedPayload.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+    const payload = JSON.parse(atob(padded)) as KeycloakAccessToken;
+    return payload.realm_access?.roles ?? [];
+  } catch {
+    return [];
+  }
+}
+
+function requireBuyer(accessToken: string) {
+  const roles = readRealmRoles(accessToken);
+  if (!roles.includes('BUYER')) {
+    throw new Error("Ce compte n'est pas autorisé à utiliser l'application acheteur.");
+  }
 }
 
 async function loadUser(accessToken: string): Promise<KeycloakUser> {
@@ -99,6 +127,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     AuthSession.useAuthRequest(authRequestConfig, registrationDiscovery);
 
   const establishSession = useCallback(async (storedSession: StoredSession) => {
+    requireBuyer(storedSession.accessToken);
     const identity = await loadUser(storedSession.accessToken);
     await saveStoredSession(storedSession);
     setSession(storedSession);
@@ -114,7 +143,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
           await establishSession(storedSession);
         }
       })
-      .catch(() => clearStoredSession())
+      .catch(async (restoreError: unknown) => {
+        await clearStoredSession();
+        if (active && restoreError instanceof Error) {
+          setError(restoreError.message);
+        }
+      })
       .finally(() => {
         if (active) {
           setIsReady(true);

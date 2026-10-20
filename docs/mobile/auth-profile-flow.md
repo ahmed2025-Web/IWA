@@ -12,6 +12,9 @@ Le client React Native avec aperçu Expo Web permet à un acheteur de :
    naissance ;
 6. enregistrer ces informations dans `user-service`.
 
+Le rôle realm Keycloak `BUYER` est obligatoire. Un compte ne portant pas ce
+rôle est refusé par le client.
+
 ## Sources de vérité
 
 Keycloak reste propriétaire :
@@ -39,6 +42,7 @@ table `user_profiles`.
 - les deux actions ouvrent l'interface Keycloak, jamais un formulaire de mot de
   passe propre à l'application ;
 - le client OIDC utilisé est `okit-mobile` sans secret ;
+- l'inscription publique reçoit le rôle `BUYER` par défaut ;
 - une erreur ou une annulation ramène à un état exploitable.
 
 ### Utilisateur authentifié

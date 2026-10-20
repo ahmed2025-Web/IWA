@@ -1,6 +1,9 @@
 # O'kit user-service
 
-Ce service Spring Boot conserve le profil métier de l'acheteur authentifié. Keycloak reste propriétaire des identités, mots de passe, sessions et rôles.
+Ce service Spring Boot conserve le profil métier de l'acheteur authentifié.
+Keycloak reste propriétaire des identités, mots de passe, sessions et rôles.
+Les routes `/api/users/**` exigent le rôle realm `BUYER`. Un token ne portant
+pas ce rôle reçoit une réponse `403`.
 
 ## Configuration
 

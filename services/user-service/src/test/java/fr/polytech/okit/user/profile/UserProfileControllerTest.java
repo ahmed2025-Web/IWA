@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -44,7 +45,7 @@ class UserProfileControllerTest {
         when(service.getBySubject("subject-123")).thenReturn(profile);
 
         mockMvc.perform(get("/api/users/me")
-                        .with(jwt().jwt(token -> token.subject("subject-123").claim("email", "alice@example.test"))))
+                        .with(buyerJwt().jwt(token -> token.subject("subject-123").claim("email", "alice@example.test"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.subject").value("subject-123"))
                 .andExpect(jsonPath("$.email").value("alice@example.test"))
@@ -59,7 +60,7 @@ class UserProfileControllerTest {
         when(service.upsert(eq("subject-123"), any(UpdateUserProfileRequest.class))).thenReturn(profile);
 
         mockMvc.perform(put("/api/users/me")
-                        .with(jwt().jwt(token -> token.subject("subject-123").claim("email", "alice@example.test")))
+                        .with(buyerJwt().jwt(token -> token.subject("subject-123").claim("email", "alice@example.test")))
                         .contentType("application/json")
                         .content("""
                                 {
@@ -78,7 +79,7 @@ class UserProfileControllerTest {
     @Test
     void rejectsInvalidProfile() throws Exception {
         SecurityMockMvcRequestPostProcessors.JwtRequestPostProcessor authenticated =
-                jwt().jwt(token -> token.subject("subject-123"));
+                buyerJwt().jwt(token -> token.subject("subject-123"));
 
         mockMvc.perform(put("/api/users/me")
                         .with(authenticated)
@@ -91,5 +92,16 @@ class UserProfileControllerTest {
                                 }
                                 """))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void rejectsTokenWithoutBuyerRole() throws Exception {
+        mockMvc.perform(get("/api/users/me")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_OTHER"))))
+                .andExpect(status().isForbidden());
+    }
+
+    private static SecurityMockMvcRequestPostProcessors.JwtRequestPostProcessor buyerJwt() {
+        return jwt().authorities(new SimpleGrantedAuthority("ROLE_BUYER"));
     }
 }
