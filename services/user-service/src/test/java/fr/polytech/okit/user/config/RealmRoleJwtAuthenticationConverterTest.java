@@ -24,10 +24,10 @@ class RealmRoleJwtAuthenticationConverterTest {
                 Map.of(
                         "sub", "buyer-123",
                         "scope", "openid profile",
-                        "realm_access", Map.of("roles", List.of("BUYER"))));
+                        "realm_access", Map.of("roles", List.of("BUYER", "SELLER"))));
 
         assertThat(converter.convert(jwt).getAuthorities())
                 .extracting("authority")
-                .contains("SCOPE_openid", "SCOPE_profile", "ROLE_BUYER");
+                .contains("SCOPE_openid", "SCOPE_profile", "ROLE_BUYER", "ROLE_SELLER");
     }
 }

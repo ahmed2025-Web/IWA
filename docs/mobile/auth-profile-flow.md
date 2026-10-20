@@ -47,6 +47,8 @@ table `user_profiles`.
 
 ### Utilisateur authentifié
 
+- le client refuse un token ne portant pas exclusivement `BUYER`, notamment un
+  compte vendeur ou un compte mal provisionné avec `BUYER` et `SELLER` ;
 - avant chaque appel protégé, le client réutilise l'access token tant qu'il est
   encore valable avec une marge de sécurité ;
 - à l'approche de l'expiration, le client renouvelle automatiquement l'access

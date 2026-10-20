@@ -47,6 +47,10 @@ une seule fois un appel ayant reçu `401`. Les sessions natives sont conservées
 dans SecureStore. L'aperçu web utilise uniquement `sessionStorage`, afin qu'une
 session survive à un rechargement mais pas à la fermeture de l'onglet.
 
+Le client exige exclusivement le rôle realm `BUYER`. Un compte vendeur
+`SELLER`, y compris un compte portant accidentellement les deux rôles, est
+refusé avant l'accès au profil.
+
 ## Vérifications
 
 ```bash

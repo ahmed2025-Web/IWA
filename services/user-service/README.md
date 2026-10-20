@@ -104,6 +104,10 @@ Une inscription publique doit recevoir le rôle `BUYER`. Un compte sans ce rôle
 doit être refusé par le client et recevoir `403 Forbidden` sur l'API
 utilisateur.
 
+Un compte vendeur porte exclusivement `SELLER` et ne possède aucun profil dans
+ce service. Un token `SELLER`, ou un token mal provisionné portant à la fois
+`BUYER` et `SELLER`, reçoit également `403 Forbidden`.
+
 ### Automatiser le parcours local de bout en bout
 
 Avec les quatre conteneurs actifs, un administrateur Keycloak local peut lancer

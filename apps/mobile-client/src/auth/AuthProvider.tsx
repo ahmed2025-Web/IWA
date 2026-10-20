@@ -85,9 +85,9 @@ function readRealmRoles(accessToken: string): string[] {
   }
 }
 
-function requireBuyer(accessToken: string) {
+function requireExclusiveBuyer(accessToken: string) {
   const roles = readRealmRoles(accessToken);
-  if (!roles.includes('BUYER')) {
+  if (!roles.includes('BUYER') || roles.includes('SELLER')) {
     throw new Error("Ce compte n'est pas autorisé à utiliser l'application acheteur.");
   }
 }
@@ -180,7 +180,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
             throw new Error('La session a changé pendant son renouvellement.');
           }
           const refreshedSession = toStoredSession(tokens, storedSession);
-          requireBuyer(refreshedSession.accessToken);
+          requireExclusiveBuyer(refreshedSession.accessToken);
           await persistSession(refreshedSession);
           return refreshedSession;
         })
@@ -197,7 +197,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const establishSession = useCallback(
     async (storedSession: StoredSession) => {
       const currentSession = await refreshStoredSession(storedSession);
-      requireBuyer(currentSession.accessToken);
+      requireExclusiveBuyer(currentSession.accessToken);
       const identity = await loadUser(currentSession.accessToken);
       await persistSession(currentSession);
       setUser(identity);

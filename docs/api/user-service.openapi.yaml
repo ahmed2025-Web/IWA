@@ -72,7 +72,7 @@ components:
     Unauthorized:
       description: Token absent, expiré ou invalide
     Forbidden:
-      description: Le token ne porte pas le rôle BUYER
+      description: Le token ne porte pas exclusivement le rôle BUYER ou porte également SELLER
   schemas:
     UpdateUserProfile:
       type: object

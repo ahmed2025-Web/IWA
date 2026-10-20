@@ -1,6 +1,9 @@
 # Authentification locale avec Keycloak
 
-Ce document décrit la configuration de l'authentification O'kit. Keycloak porte les identités, les mots de passe et le rôle acheteur. L'application mobile utilise un client public OIDC avec Authorization Code et PKCE S256.
+Ce document décrit la configuration de l'authentification O'kit. Keycloak porte
+les identités, les mots de passe et les rôles acheteur et vendeur. L'application
+acheteur et le backoffice React utilisent chacun un client public OIDC avec
+Authorization Code et PKCE S256.
 
 Cette configuration est réservée au développement local. Le mode `start-dev`, HTTP et les URI localhost ne conviennent pas à la production.
 
@@ -10,6 +13,7 @@ Le fichier `infra/keycloak/import/okit-realm.json` crée au premier démarrage :
 
 - le realm `okit` ;
 - le client public `okit-mobile` ;
+- le client public `okit-seller-web` ;
 - le flux Authorization Code ;
 - l'obligation d'utiliser PKCE S256 ;
 - le client scope Keycloak `basic`, qui ajoute le claim stable `sub` au token
@@ -17,6 +21,7 @@ Le fichier `infra/keycloak/import/okit-realm.json` crée au premier démarrage :
 - l'inscription utilisateur ;
 - la réinitialisation du mot de passe ;
 - le rôle realm `BUYER` ;
+- le rôle realm `SELLER` ;
 - l'attribution de `BUYER` par défaut aux inscriptions publiques.
 
 Le client ne possède pas de secret, car une application installée sur un appareil ne peut pas conserver un secret de manière fiable. Les flux implicite, Resource Owner Password Credentials et service account sont désactivés.
@@ -82,9 +87,9 @@ Cette suppression est destructive pour les comptes de développement créés loc
 | URI web | `http://localhost:8081` |
 | Scopes attendus | `openid profile email` |
 
-Le client mobile et `user-service` exigent le rôle `BUYER`. Un scope mapping
-limité à ce rôle le rend disponible dans le jeton sans exposer automatiquement
-les futurs rôles du realm.
+Le client mobile et `user-service` exigent exclusivement le rôle `BUYER`. Les
+scope mappings exposent `BUYER` et `SELLER` afin qu'un compte mal provisionné
+avec les deux rôles soit refusé explicitement.
 
 Dans Kubernetes, le même client accepte également le domaine HTTPS du groupe :
 
@@ -93,6 +98,22 @@ https://dams5-07.students.polytech.lange.xyz
 ```
 
 L'étape d'implémentation mobile devra calculer l'URI de redirection avec Expo plutôt que la coder en dur. La valeur obtenue devra correspondre exactement à une URI autorisée dans Keycloak.
+
+## Paramètres du client vendeur
+
+| Paramètre | Valeur de développement |
+| --- | --- |
+| Realm | `okit` |
+| Client | `okit-seller-web` |
+| Type | Client public |
+| Flux | Authorization Code |
+| PKCE | S256 obligatoire |
+| URI web | `http://localhost:5173/*` |
+| Scopes attendus | `openid profile email` |
+
+Le backoffice accepte exclusivement `SELLER`. Il ne propose aucune inscription
+vendeur et conserve ses tokens en mémoire uniquement. L'inscription générique
+du realm reste réservée aux acheteurs et ne fournit jamais `SELLER`.
 
 ## Accès depuis Android ou un appareil physique
 
@@ -106,8 +127,8 @@ Le volume Docker `keycloak_data` conserve les utilisateurs et la configuration l
 
 Une modification de `okit-realm.json` ne remplace donc pas automatiquement un
 realm déjà présent. Le script idempotent suivant applique les paramètres
-fonctionnels du realm, du rôle `BUYER` et du client public sans supprimer les
-utilisateurs :
+fonctionnels du realm, des rôles `BUYER`/`SELLER` et des deux clients publics
+sans supprimer les utilisateurs :
 
 ```bash
 KEYCLOAK_ADMIN_USERNAME=admin \
@@ -132,13 +153,25 @@ Le client ouvre l'endpoint d'inscription utilisateur Keycloak avec le même flux
 Authorization Code et PKCE que la connexion. Le mot de passe reste donc saisi
 uniquement dans l'interface Keycloak.
 
+## Création d'un compte vendeur
+
+La création d'un vendeur est une opération administrative. Dans la console
+Keycloak du realm `okit`, l'administrateur crée l'utilisateur, lui impose si
+nécessaire un changement de mot de passe, retire `default-roles-okit` puis
+attribue `SELLER`. Il vérifie enfin que les rôles effectifs ne contiennent pas
+`BUYER`.
+
+La procédure détaillée et les contrôles attendus sont décrits dans
+[`docs/seller/authentication-flow.md`](../seller/authentication-flow.md).
+
 ## Limites connues
 
 - aucun serveur SMTP n'est configuré ;
 - la validation de l'adresse e-mail est désactivée en développement ;
 - l'aperçu web local dépend de Keycloak sur `8080`, d'Expo sur `8081` et de la
   gateway sur `8083` ; `user-service` reste exposé sur `8082` uniquement pour
-  le diagnostic local.
+  le diagnostic local ;
+- le backoffice vendeur local utilise `http://localhost:5173`.
 
 ## Déploiement Kubernetes
 

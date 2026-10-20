@@ -103,6 +103,22 @@ class UserProfileControllerTest {
     }
 
     @Test
+    void rejectsSellerToken() throws Exception {
+        mockMvc.perform(get("/api/users/me")
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_SELLER"))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void rejectsTokenWithBuyerAndSellerRoles() throws Exception {
+        mockMvc.perform(get("/api/users/me")
+                        .with(jwt().authorities(
+                                new SimpleGrantedAuthority("ROLE_BUYER"),
+                                new SimpleGrantedAuthority("ROLE_SELLER"))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void rejectsUnexpectedAuthenticatedRoute() throws Exception {
         mockMvc.perform(get("/api/internal/unexpected")
                         .with(buyerJwt()))

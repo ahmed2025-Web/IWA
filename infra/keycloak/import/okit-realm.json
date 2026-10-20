@@ -15,6 +15,10 @@
       {
         "name": "BUYER",
         "description": "Acheteur autorisé à utiliser l'application mobile O'kit"
+      },
+      {
+        "name": "SELLER",
+        "description": "Employé O'kit autorisé à utiliser le backoffice vendeur"
       }
     ]
   },
@@ -61,13 +65,58 @@
         "phone",
         "offline_access"
       ]
+    },
+    {
+      "clientId": "okit-seller-web",
+      "name": "O'kit seller backoffice",
+      "description": "Client public OIDC du backoffice React réservé aux employés O'kit",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "bearerOnly": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "fullScopeAllowed": false,
+      "redirectUris": [
+        "http://localhost:5173",
+        "http://localhost:5173/*",
+        "https://dams5-07.students.polytech.lange.xyz/backoffice",
+        "https://dams5-07.students.polytech.lange.xyz/backoffice/*"
+      ],
+      "webOrigins": [
+        "http://localhost:5173",
+        "https://dams5-07.students.polytech.lange.xyz"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "defaultClientScopes": [
+        "basic",
+        "profile",
+        "email",
+        "roles",
+        "web-origins"
+      ],
+      "optionalClientScopes": [
+        "offline_access"
+      ]
     }
   ],
   "scopeMappings": [
     {
       "client": "okit-mobile",
       "roles": [
-        "BUYER"
+        "BUYER",
+        "SELLER"
+      ]
+    },
+    {
+      "client": "okit-seller-web",
+      "roles": [
+        "BUYER",
+        "SELLER"
       ]
     }
   ]

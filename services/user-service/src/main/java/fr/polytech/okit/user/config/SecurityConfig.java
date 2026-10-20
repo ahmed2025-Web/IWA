@@ -21,19 +21,21 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/health", "/health/**", "/metrics").permitAll()
-                        .requestMatchers("/api/users/**").access(SecurityConfig::isBuyer)
+                        .requestMatchers("/api/users/**").access(SecurityConfig::isExclusiveBuyer)
                         .anyRequest().denyAll())
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt
                         .jwtAuthenticationConverter(new RealmRoleJwtAuthenticationConverter())))
                 .build();
     }
 
-    private static AuthorizationDecision isBuyer(
+    private static AuthorizationDecision isExclusiveBuyer(
             Supplier<? extends Authentication> authentication,
             RequestAuthorizationContext context) {
         Authentication current = authentication.get();
         boolean buyer = current.getAuthorities().stream()
                 .anyMatch(authority -> authority.getAuthority().equals("ROLE_BUYER"));
-        return new AuthorizationDecision(buyer);
+        boolean seller = current.getAuthorities().stream()
+                .anyMatch(authority -> authority.getAuthority().equals("ROLE_SELLER"));
+        return new AuthorizationDecision(buyer && !seller);
     }
 }
