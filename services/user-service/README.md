@@ -1,40 +1,218 @@
 # O'kit user-service
 
-Ce service Spring Boot conserve le profil métier de l'acheteur authentifié.
-Keycloak reste propriétaire des identités, mots de passe, sessions et rôles.
-Les routes `/api/users/**` exigent le rôle realm `BUYER`. Un token ne portant
-pas ce rôle reçoit une réponse `403`.
+`user-service` conserve le profil métier de l'acheteur authentifié. Keycloak
+reste propriétaire de l'identité, de l'e-mail, du mot de passe, des sessions
+et des rôles.
 
-## Configuration
+Les routes `/api/users/**` exigent un JWT valide portant le rôle realm
+`BUYER`. Le service ne permet d'accéder qu'au profil associé au claim `sub` du
+token courant.
+
+## Fonctionnalités disponibles
+
+- consulter son profil avec `GET /api/users/me` ;
+- créer ou remplacer son profil avec `PUT /api/users/me` ;
+- conserver le prénom, le nom, le téléphone et la date de naissance ;
+- exécuter les migrations PostgreSQL avec Flyway ;
+- exposer `/health` et `/metrics` pour l'exploitation.
+
+Le contrat complet se trouve dans
+[`docs/api/user-service.openapi.yaml`](../../docs/api/user-service.openapi.yaml).
+
+## Prérequis
+
+- Docker et Docker Compose ;
+- Node.js et npm pour lancer l'aperçu Expo Web ;
+- Java 21 et Maven pour exécuter les tests Java hors Docker.
+
+Toutes les commandes Docker ci-dessous doivent être lancées depuis la racine
+du dépôt `O-Kit`.
+
+## Démarrage rapide
+
+### 1. Préparer la configuration locale
+
+```bash
+cp .env.example .env
+```
+
+Modifier ensuite `.env` et remplacer les valeurs `change-me-local-only` par
+des mots de passe de développement. Le fichier `.env` est ignoré par Git et ne
+doit jamais être ajouté au dépôt.
+
+Le mot de passe `USER_DB_PASSWORD` doit rester identique après la première
+initialisation du volume PostgreSQL. Le modifier sans mettre à jour la base
+existante empêchera `user-service` de démarrer.
+
+### 2. Démarrer l'environnement utilisateur
+
+```bash
+docker compose up --build -d keycloak postgres user-service api-gateway
+docker compose ps
+```
+
+Au premier démarrage, attendre que PostgreSQL soit indiqué comme `healthy` et
+que les applications Spring aient fini de démarrer :
+
+```bash
+docker compose logs -f keycloak user-service api-gateway
+```
+
+Quitter le suivi des logs avec `Ctrl+C` ; les conteneurs restent actifs.
+
+### 3. Vérifier les services
+
+```bash
+curl --fail http://127.0.0.1:8080/realms/okit/.well-known/openid-configuration
+curl --fail http://127.0.0.1:8082/health
+curl --fail http://127.0.0.1:8083/health
+curl --include http://127.0.0.1:8083/api/users/me
+```
+
+Les trois premières commandes doivent réussir. La dernière doit retourner
+`401 Unauthorized`, car aucun token n'est fourni.
+
+| Composant | URL locale | Utilité |
+| --- | --- | --- |
+| Keycloak | `http://localhost:8080` | inscription et connexion |
+| user-service | `http://localhost:8082` | diagnostic direct du service |
+| API Gateway | `http://localhost:8083` | point d'entrée des API |
+| Expo Web | `http://localhost:8081` | interface acheteur |
+
+## Tester le parcours complet avec l'interface web
+
+Garder les conteneurs précédents actifs, puis ouvrir un deuxième terminal :
+
+```bash
+cd apps/mobile-client
+npm ci
+npm run web
+```
+
+Ouvrir `http://localhost:8081`, puis vérifier le scénario suivant :
+
+1. cliquer sur **Créer un compte** ;
+2. terminer l'inscription dans Keycloak ;
+3. revenir dans l'application ;
+4. renseigner prénom, nom, téléphone et éventuellement date de naissance ;
+5. cliquer sur **Enregistrer mon profil** ;
+6. recharger la page et vérifier que les informations sont relues depuis
+   PostgreSQL ;
+7. se déconnecter puis se reconnecter avec le même compte.
+
+Une inscription publique doit recevoir le rôle `BUYER`. Un compte sans ce rôle
+doit être refusé par le client et recevoir `403 Forbidden` sur l'API
+utilisateur.
+
+## Exécuter les vérifications automatisées
+
+### Backend Java
+
+Depuis `services/user-service` :
+
+```bash
+mvn verify
+```
+
+Cette commande compile le service, exécute les tests et construit le JAR dans
+`target/`.
+
+### Application React Native / Expo
+
+Depuis `apps/mobile-client` :
+
+```bash
+npm ci
+npm run lint
+npm run typecheck
+npx expo-doctor
+```
+
+`npm ci` réinstalle exactement les versions présentes dans
+`package-lock.json`.
+
+### Vérification Docker Compose
+
+Depuis la racine du dépôt :
+
+```bash
+docker compose config --quiet
+docker compose ps
+```
+
+## Arrêter l'environnement
+
+Arrêter les conteneurs en conservant les comptes et profils locaux :
+
+```bash
+docker compose down
+```
+
+Les volumes PostgreSQL et Keycloak sont conservés et seront réutilisés au
+prochain démarrage.
+
+## Dépannage
+
+### `password authentication failed for user "okit_user"`
+
+Ce message indique généralement que `USER_DB_PASSWORD` a changé après la
+création du volume PostgreSQL.
+
+- si les données doivent être conservées, remettre dans `.env` le mot de passe
+  utilisé lors de l'initialisation ;
+- si les données locales sont jetables, réinitialiser entièrement
+  l'environnement avec la commande destructive ci-dessous.
+
+```bash
+docker compose down --volumes
+docker compose up --build -d keycloak postgres user-service api-gateway
+```
+
+`docker compose down --volumes` supprime les profils, les comptes Keycloak et
+les sessions de développement. Ne jamais l'utiliser sur un environnement
+partagé ou contenant des données à conserver.
+
+### Une modification de `okit-realm.json` n'apparaît pas
+
+Keycloak importe le realm seulement s'il n'existe pas encore. Un volume
+Keycloak déjà initialisé conserve donc l'ancienne configuration. Utiliser une
+migration Keycloak ou, uniquement pour des données locales jetables, la
+réinitialisation des volumes décrite ci-dessus.
+
+### Consulter les logs d'un composant
+
+```bash
+docker compose logs --tail=200 user-service
+docker compose logs --tail=200 postgres
+docker compose logs --tail=200 keycloak
+docker compose logs --tail=200 api-gateway
+```
+
+Ne jamais copier un token complet ou un secret dans un ticket, un commit ou un
+message partagé.
+
+## Variables de configuration
 
 | Variable | Description |
 | --- | --- |
 | `USER_DB_URL` | URL JDBC PostgreSQL |
-| `USER_DB_USERNAME` | Utilisateur PostgreSQL |
-| `USER_DB_PASSWORD` | Mot de passe PostgreSQL, obligatoire |
-| `OIDC_ISSUER_URI` | Issuer du realm Keycloak |
-| `OIDC_JWK_SET_URI` | Endpoint interne des clés publiques Keycloak |
-| `SERVER_PORT` | Port HTTP, `8080` par défaut |
-
-## Commandes
-
-```bash
-mvn test
-mvn verify
-mvn spring-boot:run
-```
-
-L'API est documentée dans `docs/api/user-service.openapi.yaml` à la racine du dépôt.
-
-Depuis la racine du dépôt, l'environnement local complet démarre avec :
-
-```bash
-cp .env.example .env
-docker compose up --build keycloak postgres user-service
-```
-
-Le service est alors exposé sur `http://localhost:8082`. Les endpoints de santé et de métriques sont respectivement `/health` et `/metrics`.
+| `USER_DB_USERNAME` | utilisateur PostgreSQL |
+| `USER_DB_PASSWORD` | mot de passe PostgreSQL obligatoire |
+| `OIDC_ISSUER_URI` | issuer du realm Keycloak |
+| `OIDC_JWK_SET_URI` | endpoint des clés publiques Keycloak |
+| `SERVER_PORT` | port HTTP du service, `8080` par défaut |
 
 ## Kubernetes
 
-Les manifests et la procédure de déploiement sont décrits dans [`infra/kubernetes/user-service/README.md`](../../infra/kubernetes/user-service/README.md). Le Service reste interne au cluster ; Spring Cloud Gateway publie le préfixe `/api/users` et centralise le CORS.
+Les manifests et la procédure de déploiement se trouvent dans
+[`infra/kubernetes/user-service/README.md`](../../infra/kubernetes/user-service/README.md).
+Le Service Kubernetes reste interne au cluster : Spring Cloud Gateway publie
+`/api/users/**` et centralise le CORS.
+
+## Documentation associée
+
+- [Contrat OpenAPI](../../docs/api/user-service.openapi.yaml)
+- [Modèle de données](../../docs/architecture/user-service-data-model.md)
+- [Parcours mobile et profil](../../docs/mobile/auth-profile-flow.md)
+- [Configuration Keycloak](../../docs/auth/keycloak.md)
+- [Déploiement Kubernetes](../../docs/devops/user-service-kubernetes.md)
