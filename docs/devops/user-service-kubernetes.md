@@ -31,7 +31,10 @@ avant d'accéder aux données métier.
 
 Le mot de passe PostgreSQL n'est pas versionné. Un Secret nommé `user-service-secrets`, contenant la clé `database-password`, doit exister avant le déploiement.
 
-L'image du service doit également être publiée par la chaîne CI dans le registre retenu par l'équipe. Le manifeste utilise une référence volontairement invalide tant que ce registre et le tag traçable ne sont pas fournis.
+L'image du service est publiée sous
+`registry.gitlab.com/iwa-group2/o-kit/user-service:<sha-git>`. L'overlay conserve
+un tag volontairement invalide jusqu'à la sélection du commit applicatif
+canonique. Le Deployment utilise le Secret `gitlab-registry`.
 
 ## Ressources et stockage
 
@@ -43,6 +46,9 @@ Les ressources sont dimensionnées pour rester raisonnables dans le quota du nam
 | PostgreSQL | 100m | 256Mi | 500m | 512Mi |
 
 PostgreSQL demande un PVC de 2 Gio. Le service utilisateur peut être redéployé sans perdre les profils ; la suppression volontaire du PVC reste une opération destructive distincte.
+
+Le PVC utilise la classe `nfs-tower` et reste strictement séparé de
+`pgdata-pvc`, propriété du backend historique déjà présent dans le namespace.
 
 ## Dépendances
 

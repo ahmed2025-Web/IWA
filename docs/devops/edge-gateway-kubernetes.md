@@ -47,9 +47,11 @@ Les ressources dans `infra/kubernetes/gateway` fournissent :
 - un ServiceMonitor pour `/metrics` ;
 - l'Ingress Traefik partagé avec Keycloak.
 
-L'image de la gateway doit être remplacée par une image traçable produite par
-le pipeline avant déploiement. Aucun secret ni kubeconfig ne doit être ajouté
-au dépôt.
+L'image de la gateway est publiée sous
+`registry.gitlab.com/iwa-group2/o-kit/api-gateway:<sha-git>`. L'overlay remplace
+le tag factice par le SHA immuable retenu avant le rendu. Le Deployment utilise
+le Secret `gitlab-registry`. Aucun secret ni kubeconfig ne doit être ajouté au
+dépôt.
 
 ## Coexistence avec le nginx initial
 

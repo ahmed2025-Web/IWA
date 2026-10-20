@@ -81,6 +81,7 @@ spec:
     - metadata:
         name: data
       spec:
+        storageClassName: nfs-tower
         accessModes:
           - ReadWriteOnce
         resources:

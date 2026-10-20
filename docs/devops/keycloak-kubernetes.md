@@ -14,8 +14,9 @@ Le socle `infra/keycloak` déploie :
 L'image est construite depuis `infra/keycloak/Dockerfile`. Elle prépare
 Keycloak pendant le build afin que le conteneur puisse démarrer avec
 `--optimized` et un système de fichiers racine en lecture seule. Sa référence
-dans `kustomization.yaml` reste volontairement invalide jusqu'à ce que la CI
-publie un tag immuable dans le registre retenu par l'équipe.
+dans l'overlay `infra/kubernetes/overlays/user-staging` utilise le registre
+GitLab du projet avec un tag volontairement invalide jusqu'à ce qu'un SHA Git
+immuable soit publié. Le Deployment référence le Secret `gitlab-registry`.
 
 Le namespace cible est `polytech-dams5-07`.
 
@@ -51,6 +52,9 @@ PostgreSQL demande un volume de 2 Gio. Le realm est importé au démarrage
 uniquement s'il n'existe pas encore dans la base. Modifier
 `infra/keycloak/import/okit-realm.json` ne migre donc pas automatiquement un
 realm existant.
+
+Le PVC utilise la classe `nfs-tower` observée sur le namespace. Il est distinct
+du PVC historique `pgdata-pvc`, qui ne doit pas être modifié ou supprimé.
 
 La suppression du PVC Keycloak détruit les comptes et les sessions. Elle ne
 doit jamais être utilisée comme mécanisme normal de mise à jour.
