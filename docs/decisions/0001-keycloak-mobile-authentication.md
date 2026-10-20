@@ -45,10 +45,13 @@ Cette solution a été écartée. Elle obligerait l'application à manipuler dir
 
 - L'application ouvrira la page Keycloak dans le navigateur système.
 - L'application calcule les URI de redirection par plateforme et gère les
-  tokens sans secret client. Le renouvellement automatique des tokens reste
-  une évolution distincte du client mobile.
+  tokens sans secret client.
+- Le client renouvelle l'access token avec le refresh token avant expiration
+  et retente une seule fois un appel API ayant reçu `401`. Un échec du
+  renouvellement supprime la session locale et impose une nouvelle connexion.
 - L'inscription et la réinitialisation bénéficieront des parcours Keycloak, mais la réinitialisation par courriel restera inactive tant qu'un SMTP n'est pas configuré.
-- La configuration locale peut être recréée après suppression volontaire du volume Docker.
+- L'import JSON crée un realm neuf. Un script d'administration idempotent
+  réconcilie un realm local déjà initialisé sans supprimer ses utilisateurs.
 - La configuration de production devra utiliser HTTPS, un stockage adapté et des secrets fournis par l'environnement de déploiement.
 
 ## Références

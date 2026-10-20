@@ -104,7 +104,25 @@ Le port du conteneur est actuellement lié à `127.0.0.1` afin de ne pas exposer
 
 Le volume Docker `keycloak_data` conserve les utilisateurs et la configuration locale. Au démarrage, l'option `--import-realm` importe les fichiers JSON présents dans `/opt/keycloak/data/import` seulement si le realm n'existe pas déjà.
 
-Une modification de `okit-realm.json` ne remplace donc pas automatiquement un realm déjà présent. Pour repartir de la configuration versionnée, il faut supprimer explicitement le volume local, en tenant compte de la perte des données de développement.
+Une modification de `okit-realm.json` ne remplace donc pas automatiquement un
+realm déjà présent. Le script idempotent suivant applique les paramètres
+fonctionnels du realm, du rôle `BUYER` et du client public sans supprimer les
+utilisateurs :
+
+```bash
+KEYCLOAK_ADMIN_USERNAME=admin \
+KEYCLOAK_ADMIN_PASSWORD='mot-de-passe-local' \
+./infra/keycloak/reconcile-local-realm.sh
+```
+
+Le mot de passe est transmis par l'environnement et n'est jamais écrit dans le
+dépôt. Le compte fourni doit déjà pouvoir administrer le realm `master`.
+
+Si l'accès administrateur d'un volume local a été perdu, utiliser la commande
+officielle `bootstrap-admin` avec tous les nœuds Keycloak arrêtés afin de créer
+un compte temporaire, exécuter la réconciliation, puis supprimer immédiatement
+ce compte. Ne pas supprimer un volume contenant des utilisateurs pour récupérer
+un accès administrateur.
 
 ## Inscription et mot de passe oublié
 
@@ -118,7 +136,6 @@ uniquement dans l'interface Keycloak.
 
 - aucun serveur SMTP n'est configuré ;
 - la validation de l'adresse e-mail est désactivée en développement ;
-- le renouvellement automatique d'une session expirée n'est pas encore fourni ;
 - l'aperçu web local dépend de Keycloak sur `8080`, d'Expo sur `8081` et de la
   gateway sur `8083` ; `user-service` reste exposé sur `8082` uniquement pour
   le diagnostic local.

@@ -104,6 +104,23 @@ Une inscription publique doit recevoir le rôle `BUYER`. Un compte sans ce rôle
 doit être refusé par le client et recevoir `403 Forbidden` sur l'API
 utilisateur.
 
+### Automatiser le parcours local de bout en bout
+
+Avec les quatre conteneurs actifs, un administrateur Keycloak local peut lancer
+le scénario reproductible suivant depuis la racine du dépôt :
+
+```bash
+KEYCLOAK_ADMIN_USERNAME=admin \
+KEYCLOAK_ADMIN_PASSWORD='mot-de-passe-local' \
+./services/user-service/scripts/test-local-user-flow.sh
+```
+
+Le script réconcilie d'abord le realm, inscrit un acheteur temporaire via le
+flux Authorization Code avec PKCE, vérifie le rôle `BUYER`, crée puis relit son
+profil par la gateway, se déconnecte, se reconnecte, renouvelle l'access token
+et nettoie le compte et le profil de test. Les tokens et mots de passe générés
+ne sont jamais affichés.
+
 ## Exécuter les vérifications automatisées
 
 ### Backend Java
