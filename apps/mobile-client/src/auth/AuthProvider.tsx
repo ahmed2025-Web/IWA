@@ -42,6 +42,7 @@ type KeycloakAccessToken = {
 
 type AuthContextValue = {
   accessToken: string | null;
+  authenticatedFetch: AuthenticatedFetch;
   canAuthenticate: boolean;
   error: string | null;
   isBusy: boolean;
@@ -52,13 +53,18 @@ type AuthContextValue = {
   user: KeycloakUser | null;
 };
 
+export type AuthenticatedFetch = typeof fetch;
+
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-function toStoredSession(tokens: AuthSession.TokenResponse): StoredSession {
+function toStoredSession(
+  tokens: AuthSession.TokenResponse,
+  previousSession?: StoredSession
+): StoredSession {
   return {
     accessToken: tokens.accessToken,
-    refreshToken: tokens.refreshToken,
-    idToken: tokens.idToken,
+    refreshToken: tokens.refreshToken ?? previousSession?.refreshToken,
+    idToken: tokens.idToken ?? previousSession?.idToken,
     issuedAt: tokens.issuedAt,
     expiresIn: tokens.expiresIn,
   };
@@ -86,6 +92,10 @@ function requireBuyer(accessToken: string) {
   }
 }
 
+function refreshMarginSeconds(expiresIn?: number) {
+  return expiresIn ? Math.min(60, Math.max(1, Math.floor(expiresIn / 2))) : 60;
+}
+
 async function loadUser(accessToken: string): Promise<KeycloakUser> {
   const response = await fetch(oidcDiscovery.userInfoEndpoint!, {
     headers: { Authorization: `Bearer ${accessToken}` },
@@ -101,6 +111,9 @@ async function loadUser(accessToken: string): Promise<KeycloakUser> {
 export function AuthProvider({ children }: PropsWithChildren) {
   const redirectUri = useMemo(() => createRedirectUri(), []);
   const handledCodes = useRef(new Set<string>());
+  const sessionRef = useRef<StoredSession | null>(null);
+  const sessionRevision = useRef(0);
+  const refreshPromise = useRef<Promise<StoredSession> | null>(null);
   const [session, setSession] = useState<StoredSession | null>(null);
   const [user, setUser] = useState<KeycloakUser | null>(null);
   const [isReady, setIsReady] = useState(false);
@@ -126,13 +139,71 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [registerRequest, , promptRegistration] =
     AuthSession.useAuthRequest(authRequestConfig, registrationDiscovery);
 
-  const establishSession = useCallback(async (storedSession: StoredSession) => {
-    requireBuyer(storedSession.accessToken);
-    const identity = await loadUser(storedSession.accessToken);
-    await saveStoredSession(storedSession);
+  const persistSession = useCallback(async (storedSession: StoredSession) => {
+    sessionRef.current = storedSession;
     setSession(storedSession);
-    setUser(identity);
+    await saveStoredSession(storedSession);
   }, []);
+
+  const clearSession = useCallback(async (message: string | null = null) => {
+    sessionRevision.current += 1;
+    sessionRef.current = null;
+    setSession(null);
+    setUser(null);
+    setError(message);
+    await clearStoredSession();
+  }, []);
+
+  const refreshStoredSession = useCallback(
+    async (storedSession: StoredSession, force = false) => {
+      const margin = refreshMarginSeconds(storedSession.expiresIn);
+      if (!force && AuthSession.TokenResponse.isTokenFresh(storedSession, -margin)) {
+        return storedSession;
+      }
+      if (!storedSession.refreshToken) {
+        throw new Error('Ta session a expiré. Reconnecte-toi.');
+      }
+      if (refreshPromise.current) {
+        return refreshPromise.current;
+      }
+
+      const revision = sessionRevision.current;
+      const pendingRefresh = AuthSession.refreshAsync(
+        {
+          clientId,
+          refreshToken: storedSession.refreshToken,
+        },
+        oidcDiscovery
+      )
+        .then(async (tokens) => {
+          if (revision !== sessionRevision.current) {
+            throw new Error('La session a changé pendant son renouvellement.');
+          }
+          const refreshedSession = toStoredSession(tokens, storedSession);
+          requireBuyer(refreshedSession.accessToken);
+          await persistSession(refreshedSession);
+          return refreshedSession;
+        })
+        .finally(() => {
+          refreshPromise.current = null;
+        });
+
+      refreshPromise.current = pendingRefresh;
+      return pendingRefresh;
+    },
+    [persistSession]
+  );
+
+  const establishSession = useCallback(
+    async (storedSession: StoredSession) => {
+      const currentSession = await refreshStoredSession(storedSession);
+      requireBuyer(currentSession.accessToken);
+      const identity = await loadUser(currentSession.accessToken);
+      await persistSession(currentSession);
+      setUser(identity);
+    },
+    [persistSession, refreshStoredSession]
+  );
 
   useEffect(() => {
     let active = true;
@@ -144,7 +215,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         }
       })
       .catch(async (restoreError: unknown) => {
-        await clearStoredSession();
+        await clearSession();
         if (active && restoreError instanceof Error) {
           setError(restoreError.message);
         }
@@ -158,7 +229,73 @@ export function AuthProvider({ children }: PropsWithChildren) {
     return () => {
       active = false;
     };
-  }, [establishSession]);
+  }, [clearSession, establishSession]);
+
+  const getCurrentSession = useCallback(
+    async (forceRefresh = false) => {
+      const currentSession = sessionRef.current;
+      if (!currentSession) {
+        return null;
+      }
+
+      try {
+        return await refreshStoredSession(currentSession, forceRefresh);
+      } catch {
+        if (sessionRef.current) {
+          await clearSession('Ta session a expiré. Reconnecte-toi.');
+        }
+        return null;
+      }
+    },
+    [clearSession, refreshStoredSession]
+  );
+
+  const authenticatedFetch = useCallback<AuthenticatedFetch>(
+    async (input, init) => {
+      const execute = (currentSession: StoredSession) => {
+        const headers = new Headers(init?.headers);
+        headers.set('Authorization', `Bearer ${currentSession.accessToken}`);
+        return fetch(input, { ...init, headers });
+      };
+
+      const currentSession = await getCurrentSession();
+      if (!currentSession) {
+        throw new Error('Une connexion est nécessaire.');
+      }
+
+      const firstResponse = await execute(currentSession);
+      if (firstResponse.status !== 401) {
+        return firstResponse;
+      }
+
+      const refreshedSession = await getCurrentSession(true);
+      if (!refreshedSession) {
+        return firstResponse;
+      }
+
+      const secondResponse = await execute(refreshedSession);
+      if (secondResponse.status === 401) {
+        await clearSession('Ta session a expiré. Reconnecte-toi.');
+      }
+      return secondResponse;
+    },
+    [clearSession, getCurrentSession]
+  );
+
+  useEffect(() => {
+    if (!session?.expiresIn) {
+      return;
+    }
+
+    const margin = refreshMarginSeconds(session.expiresIn);
+    const refreshAt = (session.issuedAt + session.expiresIn - margin) * 1000;
+    const delay = Math.max(0, refreshAt - Date.now());
+    const timer = setTimeout(() => {
+      void getCurrentSession(true);
+    }, delay);
+
+    return () => clearTimeout(timer);
+  }, [getCurrentSession, session?.expiresIn, session?.issuedAt]);
 
   const completeAuthentication = useCallback(
     async (
@@ -246,10 +383,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const logout = useCallback(async () => {
     const refreshToken = session?.refreshToken;
-    setSession(null);
-    setUser(null);
-    setError(null);
-    await clearStoredSession();
+    await clearSession();
 
     if (refreshToken && oidcDiscovery.endSessionEndpoint) {
       try {
@@ -262,11 +396,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
         // La session locale est déjà supprimée ; Keycloak pourra expirer la session distante.
       }
     }
-  }, [session?.refreshToken]);
+  }, [clearSession, session?.refreshToken]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
       accessToken: session?.accessToken ?? null,
+      authenticatedFetch,
       canAuthenticate: Boolean(loginRequest && registerRequest),
       error,
       isBusy,
@@ -277,6 +412,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       user,
     }),
     [
+      authenticatedFetch,
       error,
       isBusy,
       isReady,

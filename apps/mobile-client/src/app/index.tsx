@@ -14,7 +14,6 @@ import {
   getCurrentUserProfile,
   saveCurrentUserProfile,
   UserProfile,
-  UserProfileApiError,
   UserProfileInput,
 } from '../api/userProfile';
 import { useAuth } from '../auth/AuthProvider';
@@ -32,6 +31,7 @@ export default function HomeScreen() {
   const { width } = useWindowDimensions();
   const {
     accessToken,
+    authenticatedFetch,
     canAuthenticate,
     error: authError,
     isBusy,
@@ -128,8 +128,7 @@ export default function HomeScreen() {
             </View>
           ) : (
             <AuthenticatedProfile
-              key={accessToken}
-              accessToken={accessToken}
+              authenticatedFetch={authenticatedFetch}
               logout={logout}
               user={user}
             />
@@ -141,12 +140,12 @@ export default function HomeScreen() {
 }
 
 type AuthenticatedProfileProps = {
-  accessToken: string;
+  authenticatedFetch: ReturnType<typeof useAuth>['authenticatedFetch'];
   logout: () => Promise<void>;
   user: ReturnType<typeof useAuth>['user'];
 };
 
-function AuthenticatedProfile({ accessToken, logout, user }: AuthenticatedProfileProps) {
+function AuthenticatedProfile({ authenticatedFetch, logout, user }: AuthenticatedProfileProps) {
   const [form, setForm] = useState<UserProfileInput>({
     ...emptyProfile,
     firstName: user?.given_name ?? '',
@@ -170,7 +169,7 @@ function AuthenticatedProfile({ accessToken, logout, user }: AuthenticatedProfil
   useEffect(() => {
     let active = true;
 
-    getCurrentUserProfile(accessToken)
+    getCurrentUserProfile(authenticatedFetch)
       .then((loadedProfile) => {
         if (!active) return;
 
@@ -191,10 +190,6 @@ function AuthenticatedProfile({ accessToken, logout, user }: AuthenticatedProfil
       })
       .catch(async (profileError: unknown) => {
         if (!active) return;
-        if (profileError instanceof UserProfileApiError && profileError.status === 401) {
-          await logout();
-          return;
-        }
         setProfileState('error');
         setProfileMessage(
           profileError instanceof Error
@@ -206,7 +201,7 @@ function AuthenticatedProfile({ accessToken, logout, user }: AuthenticatedProfil
     return () => {
       active = false;
     };
-  }, [accessToken, logout]);
+  }, [authenticatedFetch]);
 
   function updateField<Key extends keyof UserProfileInput>(
     field: Key,
@@ -231,7 +226,7 @@ function AuthenticatedProfile({ accessToken, logout, user }: AuthenticatedProfil
     setProfileState('loading');
     setProfileMessage(null);
     try {
-      const savedProfile = await saveCurrentUserProfile(accessToken, {
+      const savedProfile = await saveCurrentUserProfile(authenticatedFetch, {
         firstName: form.firstName.trim(),
         lastName: form.lastName.trim(),
         phoneNumber: form.phoneNumber.trim(),
@@ -247,10 +242,6 @@ function AuthenticatedProfile({ accessToken, logout, user }: AuthenticatedProfil
       setProfileState('saved');
       setProfileMessage('Ton profil est bien enregistré dans le service utilisateur.');
     } catch (profileError) {
-      if (profileError instanceof UserProfileApiError && profileError.status === 401) {
-        await logout();
-        return;
-      }
       setProfileState('error');
       setProfileMessage(
         profileError instanceof Error

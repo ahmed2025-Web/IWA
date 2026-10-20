@@ -42,6 +42,11 @@ Ouvrir `http://localhost:8081`. Après connexion ou inscription, le formulaire
 appelle la gateway pour charger `GET /api/users/me`. Un profil absent peut être
 créé par le bouton « Enregistrer mon profil », qui appelle `PUT /api/users/me`.
 
+Le client renouvelle automatiquement l'access token avant expiration et retente
+une seule fois un appel ayant reçu `401`. Les sessions natives sont conservées
+dans SecureStore. L'aperçu web utilise uniquement `sessionStorage`, afin qu'une
+session survive à un rechargement mais pas à la fermeture de l'onglet.
+
 ## Vérifications
 
 ```bash

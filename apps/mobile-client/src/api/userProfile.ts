@@ -1,4 +1,5 @@
 import { apiBaseUrl } from '../auth/config';
+import type { AuthenticatedFetch } from '../auth/AuthProvider';
 
 export type UserProfile = {
   id: string;
@@ -38,10 +39,8 @@ async function parseProfileResponse(response: Response): Promise<UserProfile> {
   return response.json() as Promise<UserProfile>;
 }
 
-export async function getCurrentUserProfile(accessToken: string) {
-  const response = await fetch(`${apiBaseUrl}/api/users/me`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
+export async function getCurrentUserProfile(authenticatedFetch: AuthenticatedFetch) {
+  const response = await authenticatedFetch(`${apiBaseUrl}/api/users/me`);
 
   if (response.status === 404) {
     return null;
@@ -50,13 +49,12 @@ export async function getCurrentUserProfile(accessToken: string) {
 }
 
 export async function saveCurrentUserProfile(
-  accessToken: string,
+  authenticatedFetch: AuthenticatedFetch,
   profile: UserProfileInput
 ) {
-  const response = await fetch(`${apiBaseUrl}/api/users/me`, {
+  const response = await authenticatedFetch(`${apiBaseUrl}/api/users/me`, {
     method: 'PUT',
     headers: {
-      Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(profile),

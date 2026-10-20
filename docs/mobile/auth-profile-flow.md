@@ -47,13 +47,24 @@ table `user_profiles`.
 
 ### Utilisateur authentifié
 
+- avant chaque appel protégé, le client réutilise l'access token tant qu'il est
+  encore valable avec une marge de sécurité ;
+- à l'approche de l'expiration, le client renouvelle automatiquement l'access
+  token avec le refresh token, sans secret client ;
 - le client appelle `GET /api/users/me` avec le bearer token ;
 - une réponse `200` préremplit le formulaire depuis la base métier ;
 - une réponse `404` affiche un formulaire vide, prérempli avec le prénom et le
   nom disponibles dans Keycloak ;
 - l'enregistrement appelle `PUT /api/users/me` puis affiche les données
   retournées par le service ;
-- une réponse `401` invalide la session locale et demande une reconnexion.
+- une réponse `401` déclenche un seul renouvellement suivi d'une seule nouvelle
+  tentative ; un second `401` ou un refresh refusé invalide la session locale
+  et demande une reconnexion ;
+- la déconnexion supprime d'abord les tokens locaux, puis demande à Keycloak de
+  terminer la session distante ;
+- sur Android et iOS, les tokens sont conservés dans SecureStore ; pour
+  l'aperçu web, ils restent limités à `sessionStorage` et disparaissent à la
+  fermeture de l'onglet.
 
 ## Environnements
 
@@ -81,5 +92,4 @@ HTTPS du groupe.
 
 - la réinitialisation du mot de passe est proposée par Keycloak, mais l'envoi
   d'e-mail nécessite encore SMTP ;
-- le renouvellement automatique d'une session expirée sera traité séparément ;
 - aucun mot de passe ou token ne doit apparaître dans les journaux.

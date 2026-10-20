@@ -11,6 +11,15 @@ export type StoredSession = {
 
 const sessionKey = 'okit.auth.session';
 
+type WebSessionStorage = Pick<Storage, 'getItem' | 'removeItem' | 'setItem'>;
+
+function getWebSessionStorage(): WebSessionStorage | null {
+  if (Platform.OS !== 'web' || typeof globalThis.sessionStorage === 'undefined') {
+    return null;
+  }
+  return globalThis.sessionStorage;
+}
+
 export function isSessionValid(session: StoredSession) {
   if (!session.expiresIn) {
     return true;
@@ -21,40 +30,59 @@ export function isSessionValid(session: StoredSession) {
 }
 
 export async function loadStoredSession(): Promise<StoredSession | null> {
-  if (Platform.OS === 'web' || !(await SecureStore.isAvailableAsync())) {
+  const webStorage = getWebSessionStorage();
+  if (Platform.OS === 'web' && !webStorage) {
     return null;
   }
-
-  const serialized = await SecureStore.getItemAsync(sessionKey);
+  const serialized = webStorage
+    ? webStorage.getItem(sessionKey)
+    : await SecureStore.getItemAsync(sessionKey);
   if (!serialized) {
     return null;
   }
 
   try {
     const session = JSON.parse(serialized) as StoredSession;
-    if (!session.accessToken || !session.issuedAt || !isSessionValid(session)) {
-      await SecureStore.deleteItemAsync(sessionKey);
+    if (
+      !session.accessToken ||
+      !session.issuedAt ||
+      (!isSessionValid(session) && !session.refreshToken)
+    ) {
+      await clearStoredSession();
       return null;
     }
     return session;
   } catch {
-    await SecureStore.deleteItemAsync(sessionKey);
+    await clearStoredSession();
     return null;
   }
 }
 
 export async function saveStoredSession(session: StoredSession) {
-  if (Platform.OS === 'web' || !(await SecureStore.isAvailableAsync())) {
+  const serialized = JSON.stringify(session);
+  const webStorage = getWebSessionStorage();
+  if (webStorage) {
+    webStorage.setItem(sessionKey, serialized);
     return;
   }
-
-  await SecureStore.setItemAsync(sessionKey, JSON.stringify(session));
+  if (Platform.OS === 'web') {
+    return;
+  }
+  if (await SecureStore.isAvailableAsync()) {
+    await SecureStore.setItemAsync(sessionKey, serialized);
+  }
 }
 
 export async function clearStoredSession() {
-  if (Platform.OS === 'web' || !(await SecureStore.isAvailableAsync())) {
+  const webStorage = getWebSessionStorage();
+  if (webStorage) {
+    webStorage.removeItem(sessionKey);
     return;
   }
-
-  await SecureStore.deleteItemAsync(sessionKey);
+  if (Platform.OS === 'web') {
+    return;
+  }
+  if (await SecureStore.isAvailableAsync()) {
+    await SecureStore.deleteItemAsync(sessionKey);
+  }
 }
