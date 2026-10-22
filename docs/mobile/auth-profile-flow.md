@@ -43,6 +43,10 @@ table `user_profiles`.
   passe propre à l'application ;
 - le client OIDC utilisé est `okit-mobile` sans secret ;
 - l'inscription publique reçoit le rôle `BUYER` par défaut ;
+- sur l'application native, Keycloak revient vers `okit://auth`. Expo Router
+  associe ce deep link à la route `/auth`, qui redirige immédiatement vers
+  l'accueil pendant que `expo-auth-session` valide la réponse et échange le
+  code d'autorisation ;
 - une erreur ou une annulation ramène à un état exploitable.
 
 ### Utilisateur authentifié

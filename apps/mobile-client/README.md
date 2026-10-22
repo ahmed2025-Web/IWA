@@ -54,6 +54,7 @@ refusé avant l'accès au profil.
 ## Vérifications
 
 ```bash
+npm test
 npm run lint
 npm run typecheck
 npx expo-doctor
