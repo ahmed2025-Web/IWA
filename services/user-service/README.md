@@ -19,15 +19,17 @@ token courant.
 Le contrat complet se trouve dans
 [`docs/api/user-service.openapi.yaml`](../../docs/api/user-service.openapi.yaml).
 
-Ce périmètre est complet. Les adresses, préférences, wishlist, données vendeur
-et données des autres domaines métier ne font volontairement pas partie de ce
-service.
+Ce périmètre constitue le MVP complet d'authentification et de profil. Les
+adresses de livraison et la wishlist sont envisagées pour de nouvelles tranches
+fonctionnelles, mais leur rattachement éventuel à `user-service` nécessite une
+décision d'architecture et des contrats dédiés. Aucune donnée vendeur ne sera
+stockée dans ce service.
 
 ## Prérequis
 
 - Docker et Docker Compose ;
 - Node.js et npm pour lancer l'aperçu Expo Web ;
-- Java 21 et Maven pour exécuter les tests Java hors Docker.
+- un JDK 21 ou supérieur et Maven pour exécuter les tests Java hors Docker.
 
 Toutes les commandes Docker ci-dessous doivent être lancées depuis la racine
 du dépôt `O-Kit`.

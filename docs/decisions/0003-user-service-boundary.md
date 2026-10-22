@@ -2,8 +2,7 @@
 
 ## Statut
 
-Acceptée. Le périmètre décrit dans cette décision constitue la frontière
-complète de `user-service`.
+Acceptée pour le MVP d'authentification et de profil client.
 
 ## Contexte
 
@@ -35,10 +34,12 @@ Il ne conserve pas :
 
 L'e-mail retourné par l'API provient du JWT courant. Le service ne permet d'accéder qu'au profil associé au `sub` du token authentifié.
 
-Les adresses, préférences et wishlist ne font pas partie de `user-service`.
-Elles seront prises en charge par d'autres domaines métier lorsqu'ils seront
-définis. Elles ne doivent donc pas entraîner l'ajout de tables ou d'endpoints
-dans ce service.
+Les adresses de livraison et la wishlist sont envisagées comme de nouvelles
+tranches fonctionnelles autour du domaine utilisateur. La présente décision ne
+les attribue pas automatiquement à `user-service` : leur service propriétaire,
+leurs contrats et leurs dépendances interservices devront être décidés avant
+toute implémentation. La wishlist dépend notamment de l'identification des
+produits portée par le domaine catalogue.
 
 ## API initiale
 
@@ -58,8 +59,8 @@ continue de garantir qu'un acheteur agit uniquement sur son propre profil.
 
 ### Utiliser directement Keycloak comme base de profil métier
 
-Écartée, car le profil métier utile à O'Kit ne doit pas coupler le domaine
-client au modèle interne du fournisseur d'identité.
+Écartée, car les données métier amenées à évoluer ne doivent pas coupler le
+domaine client au modèle interne du fournisseur d'identité.
 
 ### Exposer un identifiant utilisateur dans l'URL
 
@@ -72,6 +73,6 @@ client au modèle interne du fournisseur d'identité.
 - `sub` est une clé externe immuable et unique ;
 - le service possède sa table et ses migrations ;
 - un changement d'e-mail reste du ressort de Keycloak ;
-- les adresses, préférences, wishlist et données des autres domaines ne sont
-  pas des évolutions attendues de `user-service` ;
+- toute extension vers les adresses ou la wishlist nécessite une décision de
+  frontière, un contrat API et un modèle de données documentés ;
 - les futurs endpoints administratifs nécessiteront une décision explicite sur les rôles.

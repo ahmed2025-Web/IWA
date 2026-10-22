@@ -17,8 +17,11 @@ Keycloak possède les comptes et les rôles :
 - un compte portant `SELLER`, ou simultanément `BUYER` et `SELLER`, reçoit
   `403 Forbidden` sur `user-service`.
 
-Les adresses, préférences, wishlist, catalogue et commandes appartiennent à
-d'autres domaines métier.
+Le MVP actuel ne contient ni adresse de livraison ni wishlist. Ces deux
+fonctionnalités sont envisagées pour des tranches ultérieures, mais leur
+service propriétaire et leurs contrats interservices doivent être décidés
+avant tout développement. La wishlist attend en particulier le contrat
+d'identification des produits du catalogue.
 
 ## 2. Prérequis
 
@@ -30,7 +33,7 @@ Obligatoires :
 
 Pour les vérifications complètes :
 
-- Java 21 ou supérieur et Maven ;
+- un JDK 21 ou supérieur et Maven ;
 - Android Studio, le SDK Android et `adb` pour un appareil physique.
 
 ## 3. Récupérer la branche à valider

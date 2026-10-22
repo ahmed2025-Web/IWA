@@ -5,9 +5,9 @@ l'authentification centralisée par Keycloak, le profil métier acheteur dans
 `user-service`, l'application mobile Expo et l'authentification du backoffice
 vendeur.
 
-## État du périmètre utilisateur
+## État du MVP utilisateur
 
-Le périmètre de `user-service` est terminé :
+Le MVP d'authentification et de profil de `user-service` est terminé :
 
 - `GET /api/users/me` consulte le profil de l'acheteur courant ;
 - `PUT /api/users/me` crée ou remplace ce profil ;
@@ -18,8 +18,11 @@ Le périmètre de `user-service` est terminé :
 - le backoffice accepte exclusivement `SELLER` ;
 - un vendeur ne possède aucune donnée dans `user-service`.
 
-Les adresses, préférences, wishlist, catalogue et commandes relèvent d'autres
-domaines et ne font volontairement pas partie de ce microservice.
+Les adresses de livraison et la wishlist sont envisagées comme de nouvelles
+tranches fonctionnelles autour du domaine utilisateur. Elles ne font pas partie
+du MVP actuel et leur service propriétaire doit être décidé avant leur
+implémentation. La wishlist dépendra notamment des identifiants définis par le
+domaine catalogue.
 
 ## Architecture livrée
 
