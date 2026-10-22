@@ -90,8 +90,11 @@ Pour l'aperçu web local, Spring Cloud Gateway autorise uniquement l'origine
 Kubernetes, le client, la gateway et les APIs sont destinés à partager l'hôte
 HTTPS du groupe.
 
-## Limites de cette tranche
+## Réinitialisation du mot de passe
 
-- la réinitialisation du mot de passe est proposée par Keycloak, mais l'envoi
-  d'e-mail nécessite encore SMTP ;
-- aucun mot de passe ou token ne doit apparaître dans les journaux.
+La réinitialisation est proposée et exécutée par Keycloak. En développement,
+les courriels sont capturés par Mailpit et consultables sur
+`http://localhost:8025`. En environnement déployé, un serveur SMTP réel doit
+être fourni par la configuration sécurisée de Keycloak.
+
+Aucun mot de passe ou token ne doit apparaître dans les journaux.

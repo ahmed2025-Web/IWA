@@ -1,10 +1,24 @@
 services:
+  mailpit:
+    image: axllent/mailpit:v1.31.5
+    restart: unless-stopped
+    environment:
+      MP_DATABASE: /data/mailpit.db
+      MP_MAX_MESSAGES: 100
+    ports:
+      - "127.0.0.1:8025:8025"
+    volumes:
+      - mailpit_data:/data
+    mem_limit: 128m
+
   keycloak:
     image: quay.io/keycloak/keycloak:26.0.5
     command:
       - start-dev
       - --import-realm
     restart: unless-stopped
+    depends_on:
+      - mailpit
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME:-admin}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?Define KEYCLOAK_ADMIN_PASSWORD in .env}
@@ -14,6 +28,7 @@ services:
     volumes:
       - keycloak_data:/opt/keycloak/data
       - ./infra/keycloak/import:/opt/keycloak/data/import:ro
+      - ./infra/keycloak/themes:/opt/keycloak/themes:ro
     mem_limit: 768m
 
   postgres:
@@ -81,4 +96,5 @@ services:
 
 volumes:
   keycloak_data:
+  mailpit_data:
   postgres_data:

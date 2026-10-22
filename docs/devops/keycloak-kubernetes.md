@@ -13,7 +13,9 @@ Le socle `infra/keycloak` déploie :
 
 L'image est construite depuis `infra/keycloak/Dockerfile`. Elle prépare
 Keycloak pendant le build afin que le conteneur puisse démarrer avec
-`--optimized` et un système de fichiers racine en lecture seule. Sa référence
+`--optimized` et un système de fichiers racine en lecture seule. Elle embarque
+également le thème `okit-seller`, qui masque l'inscription publique sur le
+client vendeur sans la retirer du client acheteur. Sa référence
 dans l'overlay `infra/kubernetes/overlays/user-staging` utilise le registre
 GitLab du projet avec un tag volontairement invalide jusqu'à ce qu'un SHA Git
 immuable soit publié. Le Deployment référence le Secret `gitlab-registry`.
@@ -45,6 +47,12 @@ Le Secret `keycloak-secrets` doit fournir :
 Aucune valeur réelle n'est conservée dans Git. Le compte bootstrap sert
 uniquement à la première administration ; son mot de passe doit être fort et
 conservé dans le gestionnaire de secrets retenu par l'équipe.
+
+Le reset de mot de passe utilise Mailpit uniquement en développement local.
+Avant sa recette sur Kubernetes, l'équipe de déploiement doit sélectionner un
+fournisseur SMTP et injecter son hôte, son port, l'expéditeur et ses éventuels
+identifiants dans la configuration Keycloak via Secret. Aucun identifiant SMTP
+ne doit être ajouté au realm JSON versionné.
 
 ## Persistance et import du realm
 

@@ -17,6 +17,12 @@ Remplacer dans `kustomization.yaml` la valeur volontairement invalide
 `registry.example.invalid/okit/keycloak:replace-me` par l'image immuable publiée
 par la chaîne CI.
 
+L'image embarque le thème `okit-seller`, sélectionné par le client
+`okit-seller-web` pour masquer l'inscription publique. Le realm conserve la
+réinitialisation du mot de passe, mais l'environnement Kubernetes doit fournir
+un serveur SMTP réel et ses identifiants via Secret avant la recette de ce
+parcours. Mailpit reste exclusivement local à Docker Compose.
+
 ## Création initiale du Secret
 
 Saisir les valeurs sans les écrire dans le dépôt ni dans l'historique du shell :

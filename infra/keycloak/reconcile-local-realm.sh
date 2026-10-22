@@ -5,17 +5,71 @@ set -eu
 : "${KEYCLOAK_ADMIN_PASSWORD:?Define KEYCLOAK_ADMIN_PASSWORD in the environment}"
 
 KEYCLOAK_ADMIN_USERNAME=${KEYCLOAK_ADMIN_USERNAME:-admin}
+KEYCLOAK_SMTP_HOST=${KEYCLOAK_SMTP_HOST:-mailpit}
+KEYCLOAK_SMTP_PORT=${KEYCLOAK_SMTP_PORT:-1025}
+KEYCLOAK_SMTP_FROM=${KEYCLOAK_SMTP_FROM:-noreply@okit.local}
+KEYCLOAK_SMTP_FROM_DISPLAY_NAME=${KEYCLOAK_SMTP_FROM_DISPLAY_NAME:-"O'kit"}
+KEYCLOAK_SMTP_AUTH=${KEYCLOAK_SMTP_AUTH:-false}
+KEYCLOAK_SMTP_STARTTLS=${KEYCLOAK_SMTP_STARTTLS:-false}
+KEYCLOAK_SMTP_SSL=${KEYCLOAK_SMTP_SSL:-false}
+KEYCLOAK_SMTP_USER=${KEYCLOAK_SMTP_USER:-}
+KEYCLOAK_SMTP_PASSWORD=${KEYCLOAK_SMTP_PASSWORD:-}
 SCRIPT_DIRECTORY=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 REPOSITORY_ROOT=$(CDPATH= cd -- "$SCRIPT_DIRECTORY/../.." && pwd)
 
+case "$KEYCLOAK_SMTP_PORT" in
+  ''|*[!0-9]*)
+    echo "KEYCLOAK_SMTP_PORT must be a numeric port." >&2
+    exit 1
+    ;;
+esac
+
+for boolean_value in "$KEYCLOAK_SMTP_AUTH" "$KEYCLOAK_SMTP_STARTTLS" "$KEYCLOAK_SMTP_SSL"; do
+  case "$boolean_value" in
+    true|false) ;;
+    *)
+      echo "SMTP boolean values must be 'true' or 'false'." >&2
+      exit 1
+      ;;
+  esac
+done
+
+if [ "$KEYCLOAK_SMTP_STARTTLS" = true ] && [ "$KEYCLOAK_SMTP_SSL" = true ]; then
+  echo "KEYCLOAK_SMTP_STARTTLS and KEYCLOAK_SMTP_SSL cannot both be enabled." >&2
+  exit 1
+fi
+
+if [ "$KEYCLOAK_SMTP_AUTH" = true ] && { [ -z "$KEYCLOAK_SMTP_USER" ] || [ -z "$KEYCLOAK_SMTP_PASSWORD" ]; }; then
+  echo "KEYCLOAK_SMTP_USER and KEYCLOAK_SMTP_PASSWORD are required when SMTP authentication is enabled." >&2
+  exit 1
+fi
+
 export OKIT_KEYCLOAK_ADMIN_USERNAME=$KEYCLOAK_ADMIN_USERNAME
 export OKIT_KEYCLOAK_ADMIN_PASSWORD=$KEYCLOAK_ADMIN_PASSWORD
+export OKIT_SMTP_HOST=$KEYCLOAK_SMTP_HOST
+export OKIT_SMTP_PORT=$KEYCLOAK_SMTP_PORT
+export OKIT_SMTP_FROM=$KEYCLOAK_SMTP_FROM
+export OKIT_SMTP_FROM_DISPLAY_NAME=$KEYCLOAK_SMTP_FROM_DISPLAY_NAME
+export OKIT_SMTP_AUTH=$KEYCLOAK_SMTP_AUTH
+export OKIT_SMTP_STARTTLS=$KEYCLOAK_SMTP_STARTTLS
+export OKIT_SMTP_SSL=$KEYCLOAK_SMTP_SSL
+export OKIT_SMTP_USER=$KEYCLOAK_SMTP_USER
+export OKIT_SMTP_PASSWORD=$KEYCLOAK_SMTP_PASSWORD
 
 cd "$REPOSITORY_ROOT"
 
 docker compose exec -T \
   -e OKIT_KEYCLOAK_ADMIN_USERNAME \
   -e OKIT_KEYCLOAK_ADMIN_PASSWORD \
+  -e OKIT_SMTP_HOST \
+  -e OKIT_SMTP_PORT \
+  -e OKIT_SMTP_FROM \
+  -e OKIT_SMTP_FROM_DISPLAY_NAME \
+  -e OKIT_SMTP_AUTH \
+  -e OKIT_SMTP_STARTTLS \
+  -e OKIT_SMTP_SSL \
+  -e OKIT_SMTP_USER \
+  -e OKIT_SMTP_PASSWORD \
   keycloak sh -s <<'KEYCLOAK_SCRIPT'
 set -eu
 
@@ -60,7 +114,16 @@ kcadm update "realms/$REALM" \
   -s rememberMe=true \
   -s loginWithEmailAllowed=true \
   -s duplicateEmailsAllowed=false \
-  -s verifyEmail=false >/dev/null
+  -s verifyEmail=false \
+  -s "smtpServer.host=$OKIT_SMTP_HOST" \
+  -s "smtpServer.port=$OKIT_SMTP_PORT" \
+  -s "smtpServer.from=$OKIT_SMTP_FROM" \
+  -s "smtpServer.fromDisplayName=$OKIT_SMTP_FROM_DISPLAY_NAME" \
+  -s "smtpServer.auth=$OKIT_SMTP_AUTH" \
+  -s "smtpServer.starttls=$OKIT_SMTP_STARTTLS" \
+  -s "smtpServer.ssl=$OKIT_SMTP_SSL" \
+  -s "smtpServer.user=$OKIT_SMTP_USER" \
+  -s "smtpServer.password=$OKIT_SMTP_PASSWORD" >/dev/null
 
 ensure_role() {
   role_name=$1
@@ -144,6 +207,7 @@ kcadm update "clients/$SELLER_CLIENT_UUID" -r "$REALM" \
   -s 'redirectUris=["http://localhost:5173","http://localhost:5173/*","https://dams5-07.students.polytech.lange.xyz/backoffice","https://dams5-07.students.polytech.lange.xyz/backoffice/*"]' \
   -s 'webOrigins=["http://localhost:5173","https://dams5-07.students.polytech.lange.xyz"]' \
   -s 'attributes."pkce.code.challenge.method"=S256' \
+  -s 'attributes."login_theme"=okit-seller' \
   -s 'defaultClientScopes=["basic","profile","email","roles","web-origins"]' \
   -s 'optionalClientScopes=["offline_access"]' >/dev/null
 

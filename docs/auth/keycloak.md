@@ -20,6 +20,7 @@ Le fichier `infra/keycloak/import/okit-realm.json` crée au premier démarrage :
   d'accès utilisé par les microservices ;
 - l'inscription utilisateur ;
 - la réinitialisation du mot de passe ;
+- l'envoi local des courriels de réinitialisation vers Mailpit ;
 - le rôle realm `BUYER` ;
 - le rôle realm `SELLER` ;
 - l'attribution de `BUYER` par défaut aux inscriptions publiques.
@@ -115,6 +116,10 @@ Le backoffice accepte exclusivement `SELLER`. Il ne propose aucune inscription
 vendeur et conserve ses tokens en mémoire uniquement. L'inscription générique
 du realm reste réservée aux acheteurs et ne fournit jamais `SELLER`.
 
+Le client vendeur sélectionne le thème de connexion `okit-seller`. Ce thème
+masque le lien d'inscription publique pour ce client uniquement. Le lien
+« Mot de passe oublié » reste disponible aux vendeurs comme aux acheteurs.
+
 ## Accès depuis Android ou un appareil physique
 
 L'adresse `localhost:8080` fonctionne uniquement depuis la machine qui exécute Keycloak. Depuis un émulateur Android, l'hôte de développement est généralement accessible avec `10.0.2.2`. Depuis un appareil physique, il faut utiliser une adresse réseau ou un domaine de développement accessible par l'appareil.
@@ -147,7 +152,42 @@ un accès administrateur.
 
 ## Inscription et mot de passe oublié
 
-L'inscription et la réinitialisation sont activées dans le realm. L'envoi effectif des courriels de réinitialisation nécessite encore une configuration SMTP. Aucun identifiant SMTP ne doit être inscrit dans le JSON du realm ou dans le dépôt.
+L'inscription et la réinitialisation sont activées dans le realm. En local,
+Keycloak envoie les courriels à Mailpit sur le réseau Docker. La boîte de test
+est accessible uniquement depuis la machine de développement :
+
+```text
+http://localhost:8025
+```
+
+Mailpit n'envoie aucun message sur Internet. Il capture les courriels afin de
+permettre l'ouverture du lien de réinitialisation dans un navigateur. Pour
+tester le parcours :
+
+1. ouvrir la connexion Keycloak depuis l'application acheteur ou le backoffice ;
+2. sélectionner « Mot de passe oublié » ;
+3. saisir l'adresse du compte ;
+4. ouvrir Mailpit et sélectionner le courriel reçu ;
+5. ouvrir le lien et définir un nouveau mot de passe.
+
+Le script `infra/keycloak/reconcile-local-realm.sh` configure Mailpit par
+défaut. Il accepte aussi les variables suivantes pour un serveur SMTP externe :
+
+```text
+KEYCLOAK_SMTP_HOST
+KEYCLOAK_SMTP_PORT
+KEYCLOAK_SMTP_FROM
+KEYCLOAK_SMTP_FROM_DISPLAY_NAME
+KEYCLOAK_SMTP_AUTH
+KEYCLOAK_SMTP_STARTTLS
+KEYCLOAK_SMTP_SSL
+KEYCLOAK_SMTP_USER
+KEYCLOAK_SMTP_PASSWORD
+```
+
+Les identifiants d'un fournisseur SMTP réel doivent être injectés par
+l'environnement ou un Secret Kubernetes. Ils ne doivent jamais être inscrits
+dans le JSON du realm ou dans le dépôt.
 
 Le client ouvre l'endpoint d'inscription utilisateur Keycloak avec le même flux
 Authorization Code et PKCE que la connexion. Le mot de passe reste donc saisi
@@ -166,7 +206,9 @@ La procédure détaillée et les contrôles attendus sont décrits dans
 
 ## Limites connues
 
-- aucun serveur SMTP n'est configuré ;
+- Mailpit est réservé au développement local et n'achemine aucun courriel réel ;
+- le fournisseur SMTP de l'environnement déployé doit encore être choisi et
+  configuré par l'équipe en charge du déploiement ;
 - la validation de l'adresse e-mail est désactivée en développement ;
 - l'aperçu web local dépend de Keycloak sur `8080`, d'Expo sur `8081` et de la
   gateway sur `8083` ; `user-service` reste exposé sur `8082` uniquement pour

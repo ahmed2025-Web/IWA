@@ -41,8 +41,9 @@ docker compose up --build -d
 docker compose ps
 ```
 
-Attendre le démarrage des quatre services :
+Attendre le démarrage des cinq services :
 - Keycloak
+- Mailpit
 - PostgreSQL
 - User-service
 - API Gateway
@@ -60,6 +61,8 @@ bash infra/keycloak/reconcile-local-realm.sh
 ```
 
 Cette commande configure le realm `okit`, les clients et les rôles `BUYER` et `SELLER`.
+Elle configure aussi l'envoi local des courriels Keycloak vers Mailpit et le
+thème de connexion réservé au vendeur.
 
 Administration Keycloak : http://localhost:8080/admin
 
@@ -140,7 +143,20 @@ valider le parcours vendeur complet :
 ./services/user-service/scripts/test-local-seller-flow.sh
 ```
 
-## 9. Adresses locales
+## 9. Tester « Mot de passe oublié »
+
+1. ouvrir l'application acheteur ou le backoffice vendeur ;
+2. sélectionner « Mot de passe oublié » sur la page Keycloak ;
+3. saisir l'adresse e-mail du compte ;
+4. ouvrir http://localhost:8025 ;
+5. ouvrir le courriel puis son lien de réinitialisation ;
+6. définir le nouveau mot de passe et se reconnecter.
+
+Mailpit est une boîte de développement locale : aucun message n'est envoyé sur
+Internet. Un fournisseur SMTP réel devra être configuré par Secret dans
+l'environnement déployé.
+
+## 10. Adresses locales
 
 | Service | URL |
 |---|---|
@@ -148,10 +164,11 @@ valider le parcours vendeur complet :
 | Backoffice vendeur | http://localhost:5173 |
 | Keycloak | http://localhost:8080 |
 | Administration Keycloak | http://localhost:8080/admin |
+| Boîte e-mail Mailpit | http://localhost:8025 |
 | API Gateway | http://localhost:8083 |
 | User-service | http://localhost:8082 |
 
-## 10. Commandes utiles
+## 11. Commandes utiles
 
 ```bash
 # Vérifier l'état des conteneurs
@@ -174,7 +191,7 @@ git pull
 
 Cette commande supprime les volumes Docker et entraîne la perte des comptes Keycloak et des profils PostgreSQL locaux.
 
-## 11. Informations importantes
+## 12. Informations importantes
 
 - Chaque développeur utilise son propre fichier `.env`.
 - Les comptes et mots de passe utilisateurs sont gérés uniquement par Keycloak.

@@ -49,7 +49,10 @@ Cette solution a été écartée. Elle obligerait l'application à manipuler dir
 - Le client renouvelle l'access token avec le refresh token avant expiration
   et retente une seule fois un appel API ayant reçu `401`. Un échec du
   renouvellement supprime la session locale et impose une nouvelle connexion.
-- L'inscription et la réinitialisation bénéficieront des parcours Keycloak, mais la réinitialisation par courriel restera inactive tant qu'un SMTP n'est pas configuré.
+- L'inscription et la réinitialisation bénéficient des parcours Keycloak. Un
+  serveur Mailpit local capture les courriels de développement ; un fournisseur
+  SMTP réel et ses secrets restent une responsabilité de l'environnement
+  déployé.
 - L'import JSON crée un realm neuf. Un script d'administration idempotent
   réconcilie un realm local déjà initialisé sans supprimer ses utilisateurs.
 - La configuration de production devra utiliser HTTPS, un stockage adapté et des secrets fournis par l'environnement de déploiement.

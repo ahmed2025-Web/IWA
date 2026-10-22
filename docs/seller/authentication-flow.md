@@ -38,6 +38,11 @@ Le mot de passe vendeur n'est jamais ajouté au dépôt. L'inscription publique
 du realm reste disponible pour les acheteurs, mais elle n'accorde jamais
 `SELLER` et ne permet donc pas d'entrer dans le backoffice.
 
+Le client `okit-seller-web` utilise le thème Keycloak `okit-seller` : le lien
+d'inscription publique est masqué sur sa page de connexion, tandis que le lien
+de réinitialisation du mot de passe reste disponible. Le client acheteur
+continue d'afficher l'inscription publique.
+
 En développement local, la même opération peut être exécutée de manière
 reproductible par un administrateur :
 
@@ -74,4 +79,6 @@ Le client public `okit-seller-web` utilise :
 - un vendeur est refusé par l'application et l'API de profil acheteur ;
 - un compte portant les deux rôles est refusé partout ;
 - une inscription publique ne peut pas obtenir `SELLER` ;
+- la connexion vendeur ne présente aucun lien d'inscription publique ;
+- un vendeur peut demander la réinitialisation de son mot de passe par e-mail ;
 - aucune donnée vendeur n'est créée dans PostgreSQL.
