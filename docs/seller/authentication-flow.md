@@ -38,6 +38,24 @@ Le mot de passe vendeur n'est jamais ajouté au dépôt. L'inscription publique
 du realm reste disponible pour les acheteurs, mais elle n'accorde jamais
 `SELLER` et ne permet donc pas d'entrer dans le backoffice.
 
+En développement local, la même opération peut être exécutée de manière
+reproductible par un administrateur :
+
+```bash
+set -a
+source .env
+set +a
+SELLER_EMAIL='vendeur@example.test' \
+SELLER_TEMPORARY_PASSWORD='mot-de-passe-temporaire' \
+SELLER_FIRST_NAME='Camille' \
+SELLER_LAST_NAME='Martin' \
+./infra/keycloak/create-local-seller.sh
+```
+
+Le script refuse d'écraser un compte existant et ne journalise jamais le mot de
+passe. Par défaut, Keycloak demande au vendeur de remplacer ce mot de passe à
+la première connexion.
+
 ## Client web
 
 Le client public `okit-seller-web` utilise :

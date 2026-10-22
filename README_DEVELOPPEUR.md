@@ -105,17 +105,53 @@ Le test vérifie :
 
 Tester également manuellement la création d'un compte depuis l'application Expo.
 
-## 8. Adresses locales
+## 8. Lancer le backoffice vendeur
+
+Les comptes vendeurs sont créés dans l'administration Keycloak. Ils doivent
+porter exclusivement `SELLER` : retirer `default-roles-okit`, puis attribuer
+`SELLER`.
+
+La création locale peut aussi être effectuée avec le script administrateur :
+
+```bash
+SELLER_EMAIL='vendeur@example.test' \
+SELLER_TEMPORARY_PASSWORD='mot_de_passe_temporaire' \
+SELLER_FIRST_NAME='Camille' \
+SELLER_LAST_NAME='Martin' \
+./infra/keycloak/create-local-seller.sh
+```
+
+```bash
+cd apps/seller-backoffice
+cp .env.example .env.local
+npm ci
+npm run dev
+```
+
+Ouvrir : http://localhost:5173
+
+Le backoffice ne propose aucune inscription publique et ne stocke aucune donnée
+vendeur dans PostgreSQL.
+
+Dans un autre terminal, depuis la racine du dépôt et après avoir chargé `.env`,
+valider le parcours vendeur complet :
+
+```bash
+./services/user-service/scripts/test-local-seller-flow.sh
+```
+
+## 9. Adresses locales
 
 | Service | URL |
 |---|---|
 | Application Expo | http://localhost:8081 |
+| Backoffice vendeur | http://localhost:5173 |
 | Keycloak | http://localhost:8080 |
 | Administration Keycloak | http://localhost:8080/admin |
 | API Gateway | http://localhost:8083 |
 | User-service | http://localhost:8082 |
 
-## 9. Commandes utiles
+## 10. Commandes utiles
 
 ```bash
 # Vérifier l'état des conteneurs
@@ -138,7 +174,7 @@ git pull
 
 Cette commande supprime les volumes Docker et entraîne la perte des comptes Keycloak et des profils PostgreSQL locaux.
 
-## 10. Informations importantes
+## 11. Informations importantes
 
 - Chaque développeur utilise son propre fichier `.env`.
 - Les comptes et mots de passe utilisateurs sont gérés uniquement par Keycloak.
