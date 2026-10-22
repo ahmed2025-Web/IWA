@@ -19,6 +19,10 @@ token courant.
 Le contrat complet se trouve dans
 [`docs/api/user-service.openapi.yaml`](../../docs/api/user-service.openapi.yaml).
 
+Ce périmètre est complet. Les adresses, préférences, wishlist, données vendeur
+et données des autres domaines métier ne font volontairement pas partie de ce
+service.
+
 ## Prérequis
 
 - Docker et Docker Compose ;
@@ -147,6 +151,7 @@ Depuis `apps/mobile-client` :
 
 ```bash
 npm ci
+npm test
 npm run lint
 npm run typecheck
 npx expo-doctor

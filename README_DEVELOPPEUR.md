@@ -1,120 +1,204 @@
 # O'Kit — Guide développeur
 
-## 1. Prérequis
+Ce guide permet de démarrer et valider rapidement le périmètre utilisateur
+sans réinitialiser les données locales. Toutes les commandes sont à exécuter
+depuis le dépôt `O-Kit`, sauf indication contraire.
 
-Installer :
-- Git
-- Docker et Docker Compose
-- Node.js et npm
+## 1. Périmètre validé
 
-## 2. Cloner le projet
+`user-service` est propriétaire uniquement du profil métier acheteur : prénom,
+nom, téléphone et date de naissance facultative. Il ne possède ni credentials,
+ni e-mail persistant, ni rôle, ni donnée vendeur.
+
+Keycloak possède les comptes et les rôles :
+
+- `BUYER` utilise l'application Expo et `/api/users/**` ;
+- `SELLER` utilise uniquement le backoffice ;
+- un compte portant `SELLER`, ou simultanément `BUYER` et `SELLER`, reçoit
+  `403 Forbidden` sur `user-service`.
+
+Les adresses, préférences, wishlist, catalogue et commandes appartiennent à
+d'autres domaines métier.
+
+## 2. Prérequis
+
+Obligatoires :
+
+- Git ;
+- Docker avec la commande `docker compose` ;
+- Node.js et npm.
+
+Pour les vérifications complètes :
+
+- Java 21 ou supérieur et Maven ;
+- Android Studio, le SDK Android et `adb` pour un appareil physique.
+
+## 3. Récupérer la branche à valider
 
 ```bash
 git clone git@gitlab.com:iwa-group2/o-kit.git
 cd o-kit
+git fetch origin
 git switch feature/auth-login
+git pull --ff-only origin feature/auth-login
 ```
 
-## 3. Configurer les variables d'environnement
+Vérifier que le dépôt est propre avant de commencer :
 
-À la racine du projet :
+```bash
+git status
+```
+
+## 4. Configurer l'environnement local
 
 ```bash
 cp .env.example .env
-nano .env
 ```
 
-Remplacer les mots de passe par des valeurs personnelles :
+Remplacer dans `.env` les deux valeurs `change-me-local-only` :
 
 ```env
 KEYCLOAK_ADMIN_USERNAME=admin
-KEYCLOAK_ADMIN_PASSWORD=mot_de_passe_admin
-USER_DB_PASSWORD=mot_de_passe_postgres
+KEYCLOAK_ADMIN_PASSWORD=mot_de_passe_admin_local
+USER_DB_PASSWORD=mot_de_passe_postgres_local
 ```
 
-**Ne jamais commiter le fichier `.env`.**
+Le fichier `.env` est ignoré par Git. Ne jamais y placer un secret destiné à
+la production et ne jamais le commiter.
 
-## 4. Démarrer les services Docker
+Le mot de passe PostgreSQL doit rester identique après la création du volume.
+Le modifier uniquement dans `.env` empêcherait la base existante de démarrer.
+
+## 5. Démarrer la stack
 
 ```bash
+docker compose config --quiet
 docker compose up --build -d
 docker compose ps
 ```
 
-Attendre le démarrage des cinq services :
-- Keycloak
-- Mailpit
-- PostgreSQL
-- User-service
-- API Gateway
+Cinq conteneurs doivent être actifs : `keycloak`, `mailpit`, `postgres`,
+`user-service` et `api-gateway`. PostgreSQL, Mailpit, `user-service` et la
+gateway doivent devenir `healthy`.
 
-## 5. Configurer Keycloak
+Pour suivre leur démarrage :
 
-Depuis la racine du projet :
+```bash
+docker compose logs -f keycloak postgres user-service api-gateway
+```
+
+Quitter avec `Ctrl+C` ne stoppe pas les conteneurs.
+
+## 6. Réconcilier Keycloak sans perdre les comptes
 
 ```bash
 set -a
 source .env
 set +a
-
-bash infra/keycloak/reconcile-local-realm.sh
+./infra/keycloak/reconcile-local-realm.sh
 ```
 
-Cette commande configure le realm `okit`, les clients et les rôles `BUYER` et `SELLER`.
-Elle configure aussi l'envoi local des courriels Keycloak vers Mailpit et le
-thème de connexion réservé au vendeur.
+Le script est idempotent. Il configure le realm `okit`, les clients publics,
+PKCE S256, les rôles `BUYER`/`SELLER`, Mailpit et le thème vendeur sans
+réinitialiser le volume Keycloak.
 
-Administration Keycloak : http://localhost:8080/admin
+Administration : `http://localhost:8080/admin/`.
 
-Identifiant : `admin`
-
-Mot de passe : celui défini dans `.env`.
-
-## 6. Lancer l'application acheteur
+## 7. Vérification rapide des services
 
 ```bash
-cd apps/mobile-client
-
-cp .env.example .env.local
-npm ci
-npm run web
+curl --fail http://127.0.0.1:8080/realms/okit/.well-known/openid-configuration
+curl --fail http://127.0.0.1:8082/health
+curl --fail http://127.0.0.1:8082/metrics
+curl --fail http://127.0.0.1:8083/health
+curl --include http://127.0.0.1:8083/api/users/me
 ```
 
-Ouvrir : http://localhost:8081
+Résultats attendus :
 
-**Important :** utiliser le port `8081`, autorisé dans les redirections Keycloak.
+- découverte OIDC, healthchecks et métriques : succès HTTP ;
+- `/api/users/me` sans token : `401 Unauthorized`.
 
-## 7. Tester l'inscription et la connexion
+## 8. Test automatique complet BUYER
 
-Depuis la racine du projet :
+Après avoir chargé `.env` comme à l'étape 6 :
 
 ```bash
-bash services/user-service/scripts/test-local-user-flow.sh
+./services/user-service/scripts/test-local-user-flow.sh
 ```
 
-Résultat attendu :
+Le script crée puis nettoie un acheteur temporaire. Il vérifie :
+
+- inscription Keycloak ;
+- rôle `BUYER` ;
+- Authorization Code avec PKCE ;
+- échange et renouvellement des tokens ;
+- création et persistance PostgreSQL du profil ;
+- reconnexion et accès via la gateway ;
+- refus d'un appel sans token.
+
+Résultat final attendu :
 
 ```text
 Local user flow succeeded: registration, PKCE login, profile persistence, reconnection and token refresh.
 ```
 
-Le test vérifie :
-- L'inscription d'un acheteur dans Keycloak
-- L'attribution du rôle `BUYER`
-- L'authentification avec PKCE
-- La création du profil dans PostgreSQL
-- La déconnexion et la reconnexion
-- Le renouvellement du token
+## 9. Application acheteur dans le navigateur
 
-Tester également manuellement la création d'un compte depuis l'application Expo.
+Dans un nouveau terminal :
 
-## 8. Lancer le backoffice vendeur
+```bash
+cd apps/mobile-client
+cp .env.example .env.local
+npm ci
+npm run web
+```
 
-Les comptes vendeurs sont créés dans l'administration Keycloak. Ils doivent
-porter exclusivement `SELLER` : retirer `default-roles-okit`, puis attribuer
-`SELLER`.
+Ouvrir `http://localhost:8081`, puis :
 
-La création locale peut aussi être effectuée avec le script administrateur :
+1. créer un compte ;
+2. vérifier le retour automatique depuis Keycloak ;
+3. enregistrer le profil ;
+4. recharger la page ;
+5. se déconnecter et se reconnecter.
+
+Le profil doit être relu depuis PostgreSQL après rechargement et reconnexion.
+
+## 10. Application acheteur sur Android
+
+Activer les options développeur et le débogage USB, brancher le téléphone,
+puis accepter l'autorisation affichée sur l'appareil.
+
+```bash
+adb devices -l
+adb reverse tcp:8080 tcp:8080
+adb reverse tcp:8081 tcp:8081
+adb reverse tcp:8083 tcp:8083
+adb reverse --list
+```
+
+Depuis `apps/mobile-client` :
+
+```bash
+npm ci
+npx expo run:android --device
+```
+
+Pour les lancements suivants, le build de développement déjà installé peut
+être réutilisé :
+
+```bash
+npx expo start --dev-client --port 8081
+```
+
+Les redirections ADB sont à rejouer après un redémarrage du serveur ADB ou une
+reconnexion du téléphone. Le callback `okit://auth` doit revenir directement
+à l'application, sans page « Unmatched Route ».
+
+## 11. Backoffice et compte SELLER
+
+Un compte vendeur est créé uniquement par un administrateur. Après avoir
+chargé `.env` :
 
 ```bash
 SELLER_EMAIL='vendeur@example.test' \
@@ -124,6 +208,8 @@ SELLER_LAST_NAME='Martin' \
 ./infra/keycloak/create-local-seller.sh
 ```
 
+Puis :
+
 ```bash
 cd apps/seller-backoffice
 cp .env.example .env.local
@@ -131,71 +217,105 @@ npm ci
 npm run dev
 ```
 
-Ouvrir : http://localhost:5173
+Ouvrir `http://localhost:5173`. Le vendeur doit être accepté dans le
+backoffice et refusé par `user-service`.
 
-Le backoffice ne propose aucune inscription publique et ne stocke aucune donnée
-vendeur dans PostgreSQL.
-
-Dans un autre terminal, depuis la racine du dépôt et après avoir chargé `.env`,
-valider le parcours vendeur complet :
+Le scénario automatisé se lance depuis la racine, après chargement de `.env` :
 
 ```bash
 ./services/user-service/scripts/test-local-seller-flow.sh
 ```
 
-## 9. Tester « Mot de passe oublié »
+## 12. Mot de passe oublié
 
-1. ouvrir l'application acheteur ou le backoffice vendeur ;
-2. sélectionner « Mot de passe oublié » sur la page Keycloak ;
-3. saisir l'adresse e-mail du compte ;
-4. ouvrir http://localhost:8025 ;
-5. ouvrir le courriel puis son lien de réinitialisation ;
-6. définir le nouveau mot de passe et se reconnecter.
+1. ouvrir la connexion Keycloak depuis une interface ;
+2. choisir « Mot de passe oublié » ;
+3. saisir l'e-mail du compte ;
+4. ouvrir `http://localhost:8025` ;
+5. suivre le lien reçu et définir un nouveau mot de passe.
 
-Mailpit est une boîte de développement locale : aucun message n'est envoyé sur
-Internet. Un fournisseur SMTP réel devra être configuré par Secret dans
-l'environnement déployé.
+Mailpit capture seulement les courriels locaux et n'envoie rien sur Internet.
 
-## 10. Adresses locales
+## 13. Vérifications automatisées avant validation
 
-| Service | URL |
-|---|---|
-| Application Expo | http://localhost:8081 |
-| Backoffice vendeur | http://localhost:5173 |
-| Keycloak | http://localhost:8080 |
-| Administration Keycloak | http://localhost:8080/admin |
-| Boîte e-mail Mailpit | http://localhost:8025 |
-| API Gateway | http://localhost:8083 |
-| User-service | http://localhost:8082 |
-
-## 11. Commandes utiles
+Backend et base isolée Testcontainers :
 
 ```bash
-# Vérifier l'état des conteneurs
-docker compose ps
-
-# Consulter les logs
-docker compose logs -f
-
-# Reconstruire et redémarrer les services
-docker compose up --build -d
-
-# Arrêter les services sans supprimer les données
-docker compose down
-
-# Récupérer les dernières modifications
-git pull
+cd services/user-service
+mvn verify
 ```
 
-**Attention : ne pas utiliser `docker compose down -v`.**
+Application acheteur :
 
-Cette commande supprime les volumes Docker et entraîne la perte des comptes Keycloak et des profils PostgreSQL locaux.
+```bash
+cd apps/mobile-client
+npm ci
+npm test
+npm run lint
+npm run typecheck
+npx expo-doctor
+```
 
-## 12. Informations importantes
+Backoffice vendeur :
 
-- Chaque développeur utilise son propre fichier `.env`.
-- Les comptes et mots de passe utilisateurs sont gérés uniquement par Keycloak.
-- PostgreSQL O'Kit stocke uniquement les profils métier.
-- Les données Keycloak sont conservées dans un volume Docker.
-- Au premier démarrage, Keycloak importe automatiquement le realm `okit`.
-- Ne jamais commiter de mots de passe, tokens ou fichiers `.env`.
+```bash
+cd apps/seller-backoffice
+npm ci
+npm run lint
+npm run typecheck
+npm run build
+```
+
+Validation finale depuis la racine :
+
+```bash
+docker compose config --quiet
+git diff --check
+git status
+```
+
+## 14. URLs locales
+
+| Composant | URL |
+| --- | --- |
+| Client Expo Web | `http://localhost:8081` |
+| Backoffice vendeur | `http://localhost:5173` |
+| Keycloak | `http://localhost:8080` |
+| Administration Keycloak | `http://localhost:8080/admin/` |
+| Mailpit | `http://localhost:8025` |
+| API Gateway | `http://localhost:8083` |
+| `user-service` direct | `http://localhost:8082` |
+
+## 15. Arrêt et dépannage
+
+Arrêter sans perdre les comptes ni les profils :
+
+```bash
+docker compose down
+```
+
+Ne pas utiliser `docker compose down --volumes` : cette commande supprime les
+comptes Keycloak, les profils PostgreSQL et les courriels Mailpit.
+
+Logs utiles :
+
+```bash
+docker compose logs --tail=200 user-service
+docker compose logs --tail=200 api-gateway
+docker compose logs --tail=200 keycloak
+docker compose logs --tail=200 postgres
+```
+
+Si un changement Keycloak n'apparaît pas, relancer le script de réconciliation
+au lieu de supprimer les volumes. Si PostgreSQL refuse le mot de passe,
+restaurer dans `.env` la valeur utilisée lors de la création du volume.
+
+## 16. Documents de référence
+
+- [`services/user-service/README.md`](services/user-service/README.md)
+- [`docs/api/user-service.openapi.yaml`](docs/api/user-service.openapi.yaml)
+- [`docs/architecture/user-service-data-model.md`](docs/architecture/user-service-data-model.md)
+- [`docs/auth/keycloak.md`](docs/auth/keycloak.md)
+- [`docs/mobile/auth-profile-flow.md`](docs/mobile/auth-profile-flow.md)
+- [`docs/decisions/0003-user-service-boundary.md`](docs/decisions/0003-user-service-boundary.md)
+- [`docs/decisions/0006-buyer-access-to-user-service.md`](docs/decisions/0006-buyer-access-to-user-service.md)

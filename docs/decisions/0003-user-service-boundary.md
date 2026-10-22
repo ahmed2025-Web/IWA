@@ -2,7 +2,8 @@
 
 ## Statut
 
-Acceptée pour le MVP du profil client.
+Acceptée. Le périmètre décrit dans cette décision constitue la frontière
+complète de `user-service`.
 
 ## Contexte
 
@@ -34,7 +35,10 @@ Il ne conserve pas :
 
 L'e-mail retourné par l'API provient du JWT courant. Le service ne permet d'accéder qu'au profil associé au `sub` du token authentifié.
 
-Les adresses et la wishlist appartiennent fonctionnellement au domaine client, mais seront ajoutées dans des tranches ultérieures avec leurs propres contrats et migrations.
+Les adresses, préférences et wishlist ne font pas partie de `user-service`.
+Elles seront prises en charge par d'autres domaines métier lorsqu'ils seront
+définis. Elles ne doivent donc pas entraîner l'ajout de tables ou d'endpoints
+dans ce service.
 
 ## API initiale
 
@@ -54,7 +58,8 @@ continue de garantir qu'un acheteur agit uniquement sur son propre profil.
 
 ### Utiliser directement Keycloak comme base de profil métier
 
-Écartée, car les données métier amenées à évoluer, comme les adresses et la wishlist, ne doivent pas coupler le domaine client au modèle interne du fournisseur d'identité.
+Écartée, car le profil métier utile à O'Kit ne doit pas coupler le domaine
+client au modèle interne du fournisseur d'identité.
 
 ### Exposer un identifiant utilisateur dans l'URL
 
@@ -67,4 +72,6 @@ continue de garantir qu'un acheteur agit uniquement sur son propre profil.
 - `sub` est une clé externe immuable et unique ;
 - le service possède sa table et ses migrations ;
 - un changement d'e-mail reste du ressort de Keycloak ;
+- les adresses, préférences, wishlist et données des autres domaines ne sont
+  pas des évolutions attendues de `user-service` ;
 - les futurs endpoints administratifs nécessiteront une décision explicite sur les rôles.

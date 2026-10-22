@@ -28,6 +28,9 @@ Keycloak reste propriétaire de l'identité. Le champ `identity_subject` référ
 - e-mail du compte comme copie persistée ;
 - données d'un autre domaine métier.
 
-## Évolutions prévues
+## Frontière définitive
 
-Les adresses et la wishlist seront documentées avec leurs cardinalités et migrations avant leur ajout. Elles ne sont pas anticipées par des colonnes inutilisées dans la première migration.
+Cette table couvre le modèle de données complet de `user-service`. Les
+adresses, préférences, wishlist, données vendeur et données des autres domaines
+métier ne seront pas ajoutées à cette base. Chaque futur service reste
+propriétaire de son propre modèle et de ses migrations.
